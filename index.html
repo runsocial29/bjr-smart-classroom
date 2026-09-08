@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b74de">
+  <title>BJR Smart Classroom V5.4 Online</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="setupPage" class="gate hidden">
+    <div class="gate-card wide">
+      <img class="school-logo setup-school-logo" src="school-logo.png" alt="ตราโรงเรียนเบญจมราชูทิศ จังหวัดจันทบุรี">
+      <h1>Smart Classroom V4</h1>
+      <h2 class="school-name">โรงเรียนเบญจมราชูทิศ จังหวัดจันทบุรี</h2>
+      <p>ตั้งค่าการเชื่อมต่อ Supabase ครั้งแรก</p>
+      <label>Project URL
+        <input id="setupUrl" placeholder="https://xxxxx.supabase.co">
+      </label>
+      <label>Publishable / anon key
+        <textarea id="setupKey" rows="3" placeholder="sb_publishable_... หรือ anon key"></textarea>
+      </label>
+      <button class="btn primary" id="saveSetup">บันทึกและเชื่อมต่อ</button>
+      <p class="note">ใช้เฉพาะ Publishable/anon key เท่านั้น ห้ามใส่ service_role key</p>
+    </div>
+  </div>
+
+  <div id="authPage" class="gate hidden">
+    <div class="gate-card">
+      <div class="logo">SC</div>
+      <h1>Smart Classroom</h1>
+      <p>เข้าสู่ระบบสำหรับครู</p>
+      <label>อีเมล <input id="authEmail" type="email" placeholder="teacher@example.com"></label>
+      <label>รหัสผ่าน <input id="authPassword" type="password" placeholder="อย่างน้อย 6 ตัวอักษร"></label>
+      <button class="btn primary" id="signInBtn">เข้าสู่ระบบ</button>
+      <button class="btn ghost" id="signUpBtn">สมัครบัญชีครู</button>
+      <button class="link-btn" id="backToSetup">แก้ไขการตั้งค่า Supabase</button>
+      <div id="authMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <div id="studentLoginPage" class="gate hidden">
+    <div class="gate-card">
+      <img class="school-logo setup-school-logo" src="school-logo.png" alt="ตราโรงเรียนเบญจมราชูทิศ จังหวัดจันทบุรี">
+      <h1>ตรวจสอบคะแนนนักเรียน</h1>
+      <h2 class="school-name">โรงเรียนเบญจมราชูทิศ จังหวัดจันทบุรี</h2>
+      <p>กรอกรหัสนักเรียนเพื่อดูคะแนนของตนเอง</p>
+      <label>รหัสนักเรียน
+        <input id="studentCodeLogin" inputmode="numeric" autocomplete="off" placeholder="กรอกรหัสนักเรียน">
+      </label>
+      <button class="btn primary" id="studentCodeLoginBtn">ดูคะแนนของฉัน</button>
+      <div id="studentCodeLoginMsg" class="msg"></div>
+      <p class="privacy">🔒 ระบบจะแสดงเฉพาะข้อมูลของรหัสนักเรียนที่กรอก</p>
+    </div>
+  </div>
+
+  <div id="studentPage" class="student-page hidden">
+    <div class="student-shell">
+      <div class="student-brand">SMART CLASSROOM</div>
+      <div class="student-card">
+        <div class="avatar">👤</div>
+        <h1 id="spName">กำลังโหลด...</h1>
+        <p id="spRoom"></p>
+        <div id="spSingleCourse">
+          <div class="summary3 summary4">
+            <div><span>คะแนนรวม</span><strong id="spTotal">0</strong></div>
+            <div><span>คะแนนเต็มรวม</span><strong id="spMax">0</strong></div>
+            <div><span>คิดเป็น</span><strong id="spPct">0%</strong></div>
+            <div><span>เกรด</span><strong id="spGrade">0</strong></div>
+            <div class="missing-summary"><span>ไม่ได้ส่งงาน</span><strong id="spMissing">0 ชิ้น</strong></div>
+          </div>
+          <div class="table-wrap">
+            <table><thead><tr><th>ชิ้นงาน</th><th>คะแนน</th><th>เต็ม</th></tr></thead><tbody id="spScores"></tbody></table>
+          </div>
+        </div>
+        <div id="spCourses" class="student-courses hidden"></div>
+        <div id="spError" class="msg"></div>
+        <p class="privacy">🔒 หน้านี้แสดงเฉพาะข้อมูลของเจ้าของลิงก์</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="teacherApp" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo small school-brand-logo"><img src="school-logo-real.jpg" alt="ตราโรงเรียน"></div>
+        <div class="brand-text"><b>Smart Classroom</b><small>V5.4 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
+      </div>
+      <nav>
+        <button class="nav active" data-view="dashboard">🏠 Dashboard</button>
+        <button class="nav" data-view="attendance">✅ เช็กชื่อ</button>
+        <button class="nav" data-view="random">🎲 สุ่มนักเรียน</button>
+        <button class="nav" data-view="scores">📝 คะแนน</button>
+        <button class="nav" data-view="behavior">⭐ พฤติกรรม</button>
+        <button class="nav" data-view="students">👥 นักเรียน</button>
+        <button class="nav" data-view="links">🔗 ลิงก์/QR</button>
+      </nav>
+      <button class="nav logout" id="logoutBtn">↪ ออกจากระบบ</button>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><h2 id="pageTitle">Dashboard</h2><p id="todayText"></p></div>
+        <div class="roombar">
+          <div class="top-select"><small>รายวิชา</small><select id="subjectSelect"></select></div>
+          <div class="top-select"><small>ห้องเรียน</small><select id="roomSelect"></select></div>
+          <button class="btn primary" id="addRoomBtn">+ เพิ่มห้อง</button>
+          <button class="btn ghost" id="renameRoomBtn">แก้ไขห้อง/วิชา</button>
+          <button class="btn danger" id="deleteRoomBtn">ลบห้อง</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active">
+        <div class="hero card">
+          <div><span>ONLINE SMART CLASSROOM</span><h3 id="heroRoom">ห้องเรียน</h3><p>ข้อมูลบันทึกออนไลน์และพร้อมให้นักเรียนดูคะแนนรายบุคคล</p></div>
+          <div class="clock" id="clock">--:--:--</div>
+        </div>
+        <div class="stats">
+          <div class="card stat"><span>นักเรียน</span><strong id="stStudents">0</strong></div>
+          <div class="card stat"><span id="stPresentLabel">มาเรียนวันนี้</span><strong id="stPresent">0</strong></div>
+          <div class="card stat"><span>ชิ้นงาน</span><strong id="stWorks">0</strong></div>
+          <div class="card stat missing-stat"><span>นักเรียนมีงานค้าง</span><strong id="stMissingStudents">0</strong><small>คน</small></div>
+          <div class="card stat"><span>คะแนนรวมเฉลี่ย</span><strong id="stAvg">0</strong><small id="stAvgMax">/ 0</small></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3 id="dashAttendanceTitle">สถานะการเข้าเรียน</h3><div id="dashAttendance"></div></div>
+          <div class="card"><h3>คะแนนสูงสุด 5 อันดับแรก</h3><div id="dashStars"></div></div>
+        </div>
+        <div class="card dash-score-card">
+          <div class="section-head">
+            <div>
+              <h3>คะแนนรวมรายห้อง</h3>
+              <p id="dashScoreCaption">สรุปคะแนนของนักเรียนทุกคนในห้องนี้</p>
+            </div>
+          </div>
+          <div id="dashScoreNotice" class="score-notice hidden"></div>
+          <div class="table-wrap dashboard-score-wrap">
+            <table class="dashboard-score-table">
+              <thead id="dashScoreHead"></thead>
+              <tbody id="dashScoreBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="attendance" class="view">
+        <div class="card">
+          <div class="section-head">
+            <div><h3>เช็กชื่อ</h3><p>เลือกวันที่ปัจจุบันหรือย้อนหลัง • มา / สาย / ลา / ขาด</p></div>
+            <div class="attendance-tools">
+              <label class="date-picker">วันที่
+                <input type="hidden" id="attendanceDate">
+                <button type="button" class="thai-date-button" id="thaiDateBtn">เลือกวันที่</button>
+              </label>
+              <button class="btn ghost" id="todayAttendanceBtn">วันนี้</button>
+              <button class="btn success all-present-quick" id="allPresentBtn">✅ มาเรียนทั้งหมด</button>
+              <button class="btn primary" id="exportAttendanceExcelBtn">📊 สรุป Excel</button>
+            </div>
+          </div>
+          <div id="inlineThaiCalendar" class="inline-thai-calendar hidden">
+            <div class="thai-cal-head">
+              <button type="button" class="btn ghost cal-nav" id="calPrevMonth">‹</button>
+              <div>
+                <h3 id="calMonthTitle">เดือน ปี</h3>
+                <p id="calSelectedText">เลือกวันที่</p>
+              </div>
+              <button type="button" class="btn ghost cal-nav" id="calNextMonth">›</button>
+            </div>
+            <div class="thai-cal-week">
+              <span>อา.</span><span>จ.</span><span>อ.</span><span>พ.</span><span>พฤ.</span><span>ศ.</span><span>ส.</span>
+            </div>
+            <div id="thaiCalGrid" class="thai-cal-grid"></div>
+            <div class="inline-cal-actions">
+              <button type="button" class="btn ghost" id="calCancelBtn">ปิดปฏิทิน</button>
+              <button type="button" class="btn primary" id="calTodayBtn">วันนี้</button>
+            </div>
+          </div>
+          <div class="attendance-date-caption" id="attendanceDateCaption"></div><div class="attendance-tip">💡 วิธีเร็ว: เลือกวันที่ → กด “✅ มาเรียนทั้งหมด” → แก้เฉพาะนักเรียนที่ สาย / ลา / ขาด</div>
+          <div id="attendanceList" class="list"></div>
+        </div>
+
+        <div class="card attendance-summary-card">
+          <div class="section-head">
+            <div>
+              <h3>สรุปการเข้าเรียนรายวัน</h3>
+              <p id="attendanceSummaryCaption">แสดงวันเรียนทั้งหมดที่เคยบันทึกของห้องนี้</p>
+            </div>
+            <button class="btn ghost" id="refreshAttendanceSummaryBtn">↻ รีเฟรชสรุป</button>
+          </div>
+
+          <div class="attendance-legend">
+            <span><b>/</b> มา</span>
+            <span><b>ส</b> สาย</span>
+            <span><b>ล</b> ลา</span>
+            <span><b>ข</b> ขาด</span>
+          </div>
+
+          <div class="table-wrap attendance-matrix-wrap">
+            <table class="attendance-matrix">
+              <thead id="attendanceSummaryHead"></thead>
+              <tbody id="attendanceSummaryBody"></tbody>
+              <tfoot id="attendanceSummaryFoot"></tfoot>
+            </table>
+          </div>
+
+          <div class="daily-summary-wrap">
+            <h4>สรุปตามวันที่</h4>
+            <div id="attendanceDailyCards" class="daily-summary-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="random" class="view">
+        <div class="grid2">
+          <div class="card random-card"><h3>สุ่มนักเรียน</h3><div class="rand-no" id="randNo">?</div><div class="rand-name" id="randName">พร้อมสุ่ม</div><button class="btn primary big" id="randomBtn">🎲 สุ่ม</button></div>
+          <div class="card"><h3>ประวัติรอบนี้</h3><div id="randomHistory"></div><button class="btn ghost" id="clearRandomBtn">ล้างประวัติ</button></div>
+        </div>
+      </section>
+
+      <section id="scores" class="view">
+        <div class="card">
+          <div class="section-head"><div><h3>สมุดคะแนนหลายชิ้นงาน</h3><p>แต่ละงานกำหนดชื่อและคะแนนเต็มได้</p></div><button class="btn primary" id="addWorkBtn">+ เพิ่มชิ้นงาน</button></div>
+          <div id="workTabs" class="tabs"></div>
+          <div id="workEditor" class="hidden">
+            <div class="editbar">
+              <label>ชื่องาน <input id="workName"></label>
+              <label>คะแนนเต็ม <input id="workMax" type="number" min="1"></label>
+              <button class="btn primary" id="saveWorkBtn">บันทึกชื่องาน</button>
+              <button class="btn danger" id="deleteWorkBtn">ลบงาน</button>
+            </div>
+            <div id="scoreList" class="list"></div>
+            <button class="btn primary right" id="saveScoresBtn">บันทึกคะแนน</button>
+          </div>
+          <div id="noWork" class="empty">ยังไม่มีชิ้นงาน</div>
+        </div>
+
+        <div class="card exam-card">
+          <div class="section-head">
+            <div><h3>คะแนนกลางภาค • ปลายภาค • เกรด</h3><p>กลางภาค 20 คะแนน + ปลายภาค 20 คะแนน • เกรดคำนวณอัตโนมัติจากคะแนนรวม</p></div>
+            <button class="btn success" id="exportExcelBtn">📊 สรุป Excel ห้องนี้</button>
+          </div>
+          <div class="notice grade-note">เกณฑ์: 0 = 0–49, 1 = 50–54, 1.5 = 55–59, 2 = 60–64, 2.5 = 65–69, 3 = 70–74, 3.5 = 75–79, 4 = 80–100 • เพื่อให้คะแนนเต็มรวมเป็น 100 ควรกำหนดคะแนนชิ้นงานรวม 60 คะแนน</div>
+          <div class="table-wrap gradebook-wrap">
+            <table class="gradebook">
+              <thead><tr><th>เลขที่</th><th>รหัสนักเรียน</th><th>ชื่อ-นามสกุล</th><th>คะแนนชิ้นงาน</th><th>กลางภาค<br><small>/20</small></th><th>ปลายภาค<br><small>/20</small></th><th>รวม</th><th>เกรด</th></tr></thead>
+              <tbody id="examScoreList"></tbody>
+            </table>
+          </div>
+          <button class="btn primary right" id="saveExamScoresBtn">บันทึกกลางภาค / ปลายภาค</button>
+        </div>
+      </section>
+
+      <section id="behavior" class="view">
+        <div class="card"><h3>พฤติกรรมและการมีส่วนร่วม</h3><div id="behaviorList" class="list"></div></div>
+      </section>
+
+      <section id="students" class="view">
+        <div class="card">
+          <div class="section-head"><div><h3>รายชื่อนักเรียน</h3><p>เลขที่ • รหัสนักเรียน • ชื่อ-นามสกุล</p></div><button class="btn primary" id="addStudentBtn">+ เพิ่มนักเรียน</button></div>
+          <div class="import"><textarea id="bulkNames" rows="5" placeholder="นำเข้าทีละบรรทัด เช่น&#10;1,12345,ด.ช.สมชาย ใจดี&#10;2,12346,ด.ญ.สมหญิง เรียนดี"></textarea><button class="btn success" id="importBtn">นำเข้ารายชื่อ</button></div>
+          <div id="studentList" class="list"></div>
+        </div>
+      </section>
+
+      <section id="links" class="view">
+        <div class="card">
+          <div class="section-head"><div><h3>ลิงก์และ QR รายบุคคล</h3><p>นักเรียนเห็นเฉพาะคะแนนของตัวเอง</p></div></div>
+          <div class="public-url"><label>URL เว็บไซต์ที่เผยแพร่ <input id="publicUrl" placeholder="https://username.github.io/smartclassroom/"></label><button class="btn primary" id="savePublicUrlBtn">บันทึก URL</button></div>
+          <div class="student-code-portal">
+            <div><b>หน้ากรอกรหัสนักเรียน</b><p>ใช้ลิงก์/QR เดียวร่วมกันทั้งห้อง นักเรียนกรอกรหัสของตนเองเพื่อดูคะแนน</p></div>
+            <div class="actions"><button class="btn primary" id="copyStudentPortalBtn">คัดลอกลิงก์กลาง</button><button class="btn success" id="qrStudentPortalBtn">QR กลาง</button><button class="btn ghost" id="previewStudentPortalBtn">ดูหน้า</button></div>
+          </div>
+          <div class="notice">🔒 QR รายบุคคลเดิมยังใช้ได้ และเพิ่มทางเลือกกรอกรหัสนักเรียนผ่าน QR กลาง</div>
+          <div id="linkList" class="list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hidden"><div class="modal-card">
+    <h3 id="modalTitle">ข้อมูล</h3>
+    <div id="modalBody"></div>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">ยกเลิก</button><button class="btn primary" id="modalSave">บันทึก</button></div>
+  </div>
+
+  <div id="qrModal" class="modal hidden"><div class="modal-card qr"><h3 id="qrTitle">QR Code</h3><div id="qrBox"></div><p id="qrLink"></p><button class="btn primary" id="qrClose">ปิด</button></div></div>
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    if(!window.supabase){
+      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\\/script>');
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js?v=5.4-missing-assignments"></script>
+</body>
+</html>
