@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b74de">
-  <title>BJR Smart Classroom V5.4 Online</title>
+  <title>BJR Smart Classroom V5.5.4 Online</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -84,7 +84,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="logo small school-brand-logo"><img src="school-logo-real.jpg" alt="ตราโรงเรียน"></div>
-        <div class="brand-text"><b>Smart Classroom</b><small>V5.4 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
+        <div class="brand-text"><b>Smart Classroom</b><small>V5.5.4 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
       </div>
       <nav>
         <button class="nav active" data-view="dashboard">🏠 Dashboard</button>
@@ -119,7 +119,7 @@
           <div class="card stat"><span>นักเรียน</span><strong id="stStudents">0</strong></div>
           <div class="card stat"><span id="stPresentLabel">มาเรียนวันนี้</span><strong id="stPresent">0</strong></div>
           <div class="card stat"><span>ชิ้นงาน</span><strong id="stWorks">0</strong></div>
-          <div class="card stat missing-stat"><span>นักเรียนมีงานค้าง</span><strong id="stMissingStudents">0</strong><small>คน</small></div>
+          <div class="card stat missing-stat missing-stat-link" id="missingStudentsLink" role="button" tabindex="0" aria-label="เปิดหน้าคะแนนเพื่อดูนักเรียนที่มีงานค้าง"><span>นักเรียนมีงานค้าง</span><strong id="stMissingStudents">0</strong><small>คน • กดดูคะแนน →</small></div>
           <div class="card stat"><span>คะแนนรวมเฉลี่ย</span><strong id="stAvg">0</strong><small id="stAvgMax">/ 0</small></div>
         </div>
         <div class="grid2">
@@ -146,14 +146,22 @@
       <section id="attendance" class="view">
         <div class="card">
           <div class="section-head">
-            <div><h3>เช็กชื่อ</h3><p>เลือกวันที่ปัจจุบันหรือย้อนหลัง • มา / สาย / ลา / ขาด</p></div>
+            <div><h3>เช็กชื่อ</h3><p>เลือกวันที่และคาบ 1–9 • มา / สาย / ลา / ขาด</p></div>
             <div class="attendance-tools">
               <label class="date-picker">วันที่
                 <input type="hidden" id="attendanceDate">
                 <button type="button" class="thai-date-button" id="thaiDateBtn">เลือกวันที่</button>
               </label>
+              <label class="period-picker">คาบ
+                <select id="attendancePeriod" aria-label="เลือกคาบเรียน">
+                  <option value="1">คาบ 1</option><option value="2">คาบ 2</option><option value="3">คาบ 3</option>
+                  <option value="4">คาบ 4</option><option value="5">คาบ 5</option><option value="6">คาบ 6</option>
+                  <option value="7">คาบ 7</option><option value="8">คาบ 8</option><option value="9">คาบ 9</option>
+                </select>
+              </label>
               <button class="btn ghost" id="todayAttendanceBtn">วันนี้</button>
               <button class="btn success all-present-quick" id="allPresentBtn">✅ มาเรียนทั้งหมด</button>
+              <button class="btn primary attendance-save-btn" id="saveAttendanceBtn">💾 บันทึกข้อมูล</button>
               <button class="btn primary" id="exportAttendanceExcelBtn">📊 สรุป Excel</button>
             </div>
           </div>
@@ -175,7 +183,7 @@
               <button type="button" class="btn primary" id="calTodayBtn">วันนี้</button>
             </div>
           </div>
-          <div class="attendance-date-caption" id="attendanceDateCaption"></div><div class="attendance-tip">💡 วิธีเร็ว: เลือกวันที่ → กด “✅ มาเรียนทั้งหมด” → แก้เฉพาะนักเรียนที่ สาย / ลา / ขาด</div>
+          <div class="attendance-date-caption" id="attendanceDateCaption"></div><div class="attendance-tip">💡 วิธีเร็ว: เลือกวันที่ + คาบ → กด “✅ มาเรียนทั้งหมด” → แก้เฉพาะนักเรียนที่ สาย / ลา / ขาด → กด “💾 บันทึกข้อมูล” เพื่อยืนยัน</div>
           <div id="attendanceList" class="list"></div>
         </div>
 
@@ -183,7 +191,7 @@
           <div class="section-head">
             <div>
               <h3>สรุปการเข้าเรียนรายวัน</h3>
-              <p id="attendanceSummaryCaption">แสดงวันเรียนทั้งหมดที่เคยบันทึกของห้องนี้</p>
+              <p id="attendanceSummaryCaption">แสดงทุกวันที่และทุกคาบที่เคยบันทึกของห้องนี้</p>
             </div>
             <button class="btn ghost" id="refreshAttendanceSummaryBtn">↻ รีเฟรชสรุป</button>
           </div>
