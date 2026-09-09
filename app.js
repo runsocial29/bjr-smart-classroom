@@ -603,7 +603,7 @@ async function exportAttendanceExcel(){
 
   const sessionPresentRow=["","","จำนวนมาเรียนรายคาบ","",...sessions.map(x=>records.filter(r=>r.day===x.day&&(Number(r.period)||1)===x.period&&r.status==="present").length),"","","","",""];
   const wsDaily=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.2"],
+    ["BJR Smart Classroom V5.5.5"],
     [`สรุปการเข้าเรียนรายคาบ: ${room}`],
     [`รายวิชา: ${subject}`],
     [`ช่วงข้อมูล: ${fullThaiDate(sessions[0].day)} ถึง ${fullThaiDate(sessions[sessions.length-1].day)}`],
@@ -624,7 +624,7 @@ async function exportAttendanceExcel(){
     return [s.student_no,s.student_code||"",s.name,count("present"),count("late"),count("leave"),count("absent"),count("leave")+count("absent"),vals.length,leaveNotes];
   });
   const wsPerson=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.2"],
+    ["BJR Smart Classroom V5.5.5"],
     [`สรุปสถิติการเข้าเรียนรายบุคคล: ${room}`],
     [`รายวิชา: ${subject}`],
     [],personHeaders,...personRows
@@ -643,7 +643,7 @@ async function exportAttendanceExcel(){
     return [i+1,fullThaiDate(x.day),x.period,count("present"),count("late"),count("leave"),count("absent"),count("leave")+count("absent"),rows.length,leaveDetails];
   });
   const wsDates=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.2"],
+    ["BJR Smart Classroom V5.5.5"],
     [`สรุปตามวันที่และคาบ: ${room}`],
     [`รายวิชา: ${subject}`],
     [],dateHeaders,...dateRows
@@ -672,6 +672,66 @@ $("#randomBtn").onclick=()=>{
 };
 $("#clearRandomBtn").onclick=()=>{randomHistory=[];$("#randNo").textContent="?";$("#randName").textContent="พร้อมสุ่ม";renderRandom()};
 
+function clipboardScoreGrid(text){
+  const clean=String(text??"").replace(/\r/g,"").trim();
+  if(!clean)return [];
+  return clean.split("\n").map(line=>line.split("\t").map(v=>v.trim()));
+}
+function normalizePastedScore(value,maxScore){
+  const raw=String(value??"").trim();
+  if(raw==="")return "";
+  const normalized=raw.replace(",",".");
+  const n=Number(normalized);
+  if(!Number.isFinite(n))return null;
+  return String(Math.max(0,Math.min(Number(maxScore),n)));
+}
+function fireScoreInput(input){
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+}
+function pasteDownScoreColumn(e,inputs,startIndex,maxScore,label){
+  const grid=clipboardScoreGrid(e.clipboardData?.getData("text/plain"));
+  if(!grid.length)return false;
+  const values=grid.flat().filter(v=>v!=="");
+  if(values.length<=1)return false;
+  e.preventDefault();
+  let written=0;
+  values.forEach((value,offset)=>{
+    const input=inputs[startIndex+offset]; if(!input)return;
+    const score=normalizePastedScore(value,maxScore); if(score===null)return;
+    input.value=score; fireScoreInput(input); written++;
+  });
+  toast(`วาง${label} ${written} คนแล้ว • กรุณากดบันทึก`);
+  return true;
+}
+function installExamBulkPaste(){
+  const mids=$$("[data-mid]"), finals=$$("[data-final]");
+  const attach=(inputs,kind)=>inputs.forEach((inp,index)=>{
+    inp.onpaste=e=>{
+      const grid=clipboardScoreGrid(e.clipboardData?.getData("text/plain"));
+      if(!grid.length)return;
+      const hasTwoCols=kind==="mid" && grid.some(row=>row.length>=2);
+      if(hasTwoCols){
+        e.preventDefault();
+        let written=0;
+        grid.forEach((row,offset)=>{
+          const mi=mids[index+offset], fi=finals[index+offset];
+          if(!mi&&!fi)return;
+          if(mi && row[0]!==undefined && row[0]!==""){
+            const v=normalizePastedScore(row[0],20); if(v!==null){mi.value=v;fireScoreInput(mi);written++;}
+          }
+          if(fi && row[1]!==undefined && row[1]!==""){
+            const v=normalizePastedScore(row[1],20); if(v!==null){fi.value=v;fireScoreInput(fi);written++;}
+          }
+        });
+        toast(`วางคะแนนกลางภาค/ปลายภาค ${written} ช่องแล้ว • กรุณากดบันทึก`);
+        return;
+      }
+      pasteDownScoreColumn(e,inputs,index,20,kind==="mid"?"คะแนนกลางภาค":"คะแนนปลายภาค");
+    };
+  });
+  attach(mids,"mid"); attach(finals,"final");
+}
+
 function renderScores(){
   $("#workTabs").innerHTML=works.map(w=>`<button class="tab ${w.id===currentWorkId?"active":""}" data-work="${w.id}">${esc(w.name)}</button>`).join("");
   $$("[data-work]").forEach(b=>b.onclick=()=>{currentWorkId=b.dataset.work;renderScores()});
@@ -686,6 +746,7 @@ function renderScores(){
       const next=scoreInputs[index+(e.key==="ArrowDown"?1:-1)];
       if(next){next.focus();next.select();}
     };
+    inp.onpaste=e=>pasteDownScoreColumn(e,scoreInputs,index,w.max_score,"คะแนนเก็บ");
   });
 }
 $("#addWorkBtn").onclick=()=>openModal("เพิ่มชิ้นงาน",`<label>ชื่องาน<input id="mWork" placeholder="เช่น ใบงานที่ 1"></label><label>คะแนนเต็ม<input id="mMax" type="number" min="1" value="10"></label>`,async()=>{
@@ -723,6 +784,7 @@ function renderExamScores(){
       };
     });
   });
+  installExamBulkPaste();
 }
 
 $("#saveExamScoresBtn").onclick=async()=>{
@@ -748,7 +810,7 @@ function exportRoomExcel(){
     return [s.student_no,s.student_code||"",s.name,...works.map(w=>scores[w.id]?.[s.id]??""),course,missingWorkCount(s.id),e.midterm??"",e.final??"",total,gradeFromTotal(total)];
   });
   const ws=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.2"],
+    ["BJR Smart Classroom V5.5.5"],
     [`สรุปคะแนนรายห้อง: ${room}`],[`รายวิชา: ${rooms.find(r=>r.id===currentRoomId)?.subject_name||"ยังไม่ระบุรายวิชา"}`],
     ["เกณฑ์เกรด: 0=0-49 | 1=50-54 | 1.5=55-59 | 2=60-64 | 2.5=65-69 | 3=70-74 | 3.5=75-79 | 4=80-100"],
     [],headers,...rows
