@@ -1,6 +1,12 @@
 
 const CFG_KEY="bjr_v4_cfg", PUBLIC_URL_KEY="bjr_v4_public_url";
-let cfg=JSON.parse(localStorage.getItem(CFG_KEY)||"null");
+// V5.5.6: เชื่อมต่อ Supabase อัตโนมัติสำหรับครูและนักเรียนทุกอุปกรณ์
+// ใช้เฉพาะ Publishable key ซึ่งออกแบบมาสำหรับ client-side application
+const DEFAULT_SUPABASE_CONFIG=Object.freeze({
+  url:"https://isivzkduwhvbnufsrdue.supabase.co",
+  key:"sb_publishable_4OKXjLwU3UGn09eN0tsxkw_wVrfgm87"
+});
+let cfg={...DEFAULT_SUPABASE_CONFIG};
 let sb=null,user=null,rooms=[],currentRoomId=null,currentSubject="",students=[],works=[],attendance={},attendanceNotes={},attendanceHistory=[],behavior={},scores={},examScores={},currentWorkId=null,randomHistory=[],attendanceDate="",attendancePeriod=1;
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -32,9 +38,14 @@ function gradeFromTotal(total){
 function studentGrandTotal(studentId){const e=examScores[studentId]||{};return courseworkTotal(studentId)+num(e.midterm)+num(e.final)}
 
 function initClient(){
-  if(!cfg?.url||!cfg?.key)return false;
-  sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  return true;
+  if(!cfg?.url||!cfg?.key||!window.supabase?.createClient)return false;
+  try{
+    sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    return true;
+  }catch(e){
+    console.error("Supabase init failed",e);
+    return false;
+  }
 }
 function showOnly(id){["setupPage","authPage","studentLoginPage","studentPage","teacherApp"].forEach(x=>$("#"+x).classList.toggle("hidden",x!==id));}
 function publicBase(){return (localStorage.getItem(PUBLIC_URL_KEY)||location.href.split("?")[0]).trim();}
@@ -46,7 +57,12 @@ async function boot(){
   if(!attendanceDate)attendanceDate=today();
   $("#todayText").textContent=new Intl.DateTimeFormat("th-TH",{dateStyle:"full"}).format(new Date());
   setInterval(()=>$("#clock").textContent=new Date().toLocaleTimeString("th-TH"),1000);
-  if(!initClient()){showOnly("setupPage");return;}
+  if(!initClient()){
+    showOnly("setupPage");
+    const note=$("#setupStatus");
+    if(note)note.textContent="เชื่อมต่อระบบไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่";
+    return;
+  }
   if(studentToken()){showOnly("studentPage");await loadStudentPortal(studentToken());return;}
   if(isStudentCodePortal()){showOnly("studentLoginPage");return;}
   const {data:{session}}=await sb.auth.getSession();
@@ -54,20 +70,15 @@ async function boot(){
   user=session.user;showOnly("teacherApp");await loadRooms();
 }
 
-$("#saveSetup").onclick=()=>{
-  const url=$("#setupUrl").value.trim(),key=$("#setupKey").value.trim();
-  if(!url||!key)return toast("กรุณากรอก URL และ key");
-  if(/service_role/i.test(key))return toast("ห้ามใช้ service_role key");
-  localStorage.setItem(CFG_KEY,JSON.stringify({url,key}));location.reload();
-};
-$("#backToSetup").onclick=()=>{cfg=null;localStorage.removeItem(CFG_KEY);location.reload()};
+$("#saveSetup").onclick=()=>location.reload();
+$("#backToSetup").onclick=()=>location.reload();
 $("#signInBtn").onclick=async()=>{
   const btn=$("#signInBtn"), msg=$("#authMsg");
   msg.textContent="";
   const email=$("#authEmail").value.trim(), password=$("#authPassword").value;
   if(!email){msg.textContent="กรุณากรอกอีเมล";return;}
   if(password.length<6){msg.textContent="รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";return;}
-  if(!sb?.auth){msg.textContent="ยังเชื่อมต่อ Supabase ไม่สำเร็จ กรุณากด “แก้ไขการตั้งค่า Supabase” แล้วตรวจ Project URL / Key";return;}
+  if(!sb?.auth){msg.textContent="ยังเชื่อมต่อระบบไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่";return;}
   btn.disabled=true; btn.textContent="กำลังเข้าสู่ระบบ...";
   try{
     const {data,error}=await sb.auth.signInWithPassword({email,password});
@@ -87,7 +98,7 @@ $("#signUpBtn").onclick=async()=>{
   if(!email){msg.textContent="กรุณากรอกอีเมลก่อนสมัคร";return;}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent="รูปแบบอีเมลไม่ถูกต้อง";return;}
   if(password.length<6){msg.textContent="รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";return;}
-  if(!sb?.auth){msg.textContent="ยังเชื่อมต่อ Supabase ไม่สำเร็จ กรุณากด “แก้ไขการตั้งค่า Supabase” แล้วตรวจ Project URL / Key";return;}
+  if(!sb?.auth){msg.textContent="ยังเชื่อมต่อระบบไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่";return;}
 
   btn.disabled=true; btn.textContent="กำลังสมัคร...";
   msg.textContent="กำลังส่งข้อมูลสมัครบัญชีไปยัง Supabase...";

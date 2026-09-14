@@ -1,3 +1,12 @@
+BJR Smart Classroom V5.5.6 — Auto Supabase Connect
+
+- ครูและนักเรียนเชื่อมต่อ Supabase อัตโนมัติ ไม่ต้องกรอก Project URL/Publishable key บนอุปกรณ์ใหม่
+- ครูเปิดเว็บแล้วเข้าสู่ระบบหรือสมัครบัญชีครูด้วยอีเมล/รหัสผ่านได้ทันที
+- นักเรียนเปิดลิงก์ ?portal=1&owner=... แล้วเข้าสู่หน้ากรอกรหัสนักเรียนทันที
+- ใช้เฉพาะ Supabase Publishable key ใน client; ห้ามใช้ service_role/secret key
+- คงฟังก์ชัน V5.5.5 เดิมทั้งหมด
+- ไม่ต้องรัน SQL เพิ่มจาก V5.5
+
 BJR Smart Classroom V4 ONLINE
 ================================
 

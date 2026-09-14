@@ -4,24 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b74de">
-  <title>BJR Smart Classroom V5.5.5 Online</title>
+  <title>BJR Smart Classroom V5.5.6 Online</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="setupPage" class="gate hidden">
     <div class="gate-card wide">
       <img class="school-logo setup-school-logo" src="school-logo.png" alt="ตราโรงเรียนเบญจมราชูทิศ จังหวัดจันทบุรี">
-      <h1>Smart Classroom V4</h1>
+      <h1>Smart Classroom</h1>
       <h2 class="school-name">โรงเรียนเบญจมราชูทิศ จังหวัดจันทบุรี</h2>
-      <p>ตั้งค่าการเชื่อมต่อ Supabase ครั้งแรก</p>
-      <label>Project URL
-        <input id="setupUrl" placeholder="https://xxxxx.supabase.co">
-      </label>
-      <label>Publishable / anon key
-        <textarea id="setupKey" rows="3" placeholder="sb_publishable_... หรือ anon key"></textarea>
-      </label>
-      <button class="btn primary" id="saveSetup">บันทึกและเชื่อมต่อ</button>
-      <p class="note">ใช้เฉพาะ Publishable/anon key เท่านั้น ห้ามใส่ service_role key</p>
+      <p id="setupStatus">กำลังเชื่อมต่อระบบ...</p>
+      <input id="setupUrl" class="hidden" aria-hidden="true">
+      <textarea id="setupKey" class="hidden" aria-hidden="true"></textarea>
+      <button class="btn primary" id="saveSetup">ลองเชื่อมต่อใหม่</button>
+      <p class="note">หากยังเข้าไม่ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต</p>
     </div>
   </div>
 
@@ -34,7 +30,7 @@
       <label>รหัสผ่าน <input id="authPassword" type="password" placeholder="อย่างน้อย 6 ตัวอักษร"></label>
       <button class="btn primary" id="signInBtn">เข้าสู่ระบบ</button>
       <button class="btn ghost" id="signUpBtn">สมัครบัญชีครู</button>
-      <button class="link-btn" id="backToSetup">แก้ไขการตั้งค่า Supabase</button>
+      <button class="link-btn hidden" id="backToSetup" aria-hidden="true" tabindex="-1">เชื่อมต่อระบบใหม่</button>
       <div id="authMsg" class="msg"></div>
     </div>
   </div>
@@ -84,7 +80,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="logo small school-brand-logo"><img src="school-logo-real.jpg" alt="ตราโรงเรียน"></div>
-        <div class="brand-text"><b>Smart Classroom</b><small>V5.5.5 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
+        <div class="brand-text"><b>Smart Classroom</b><small>V5.5.6 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
       </div>
       <nav>
         <button class="nav active" data-view="dashboard">🏠 Dashboard</button>
@@ -304,6 +300,6 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="app.js?v=5.5.5-bulk-paste"></script>
+  <script src="app.js?v=5.5.6-auto-connect"></script>
 </body>
 </html>
