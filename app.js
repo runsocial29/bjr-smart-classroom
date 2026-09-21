@@ -9,6 +9,22 @@ const DEFAULT_SUPABASE_CONFIG=Object.freeze({
 let cfg={...DEFAULT_SUPABASE_CONFIG};
 let sb=null,user=null,rooms=[],currentRoomId=null,currentSubject="",students=[],works=[],attendance={},attendanceNotes={},attendanceHistory=[],behavior={},scores={},examScores={},currentWorkId=null,randomHistory=[],attendanceDate="",attendancePeriod=null;
 
+let unsavedWorkScores=false, unsavedExamScores=false;
+function hasUnsavedScores(){return unsavedWorkScores||unsavedExamScores}
+function confirmDiscardUnsavedScores(){
+  if(!hasUnsavedScores())return true;
+  return window.confirm("⚠️ พบคะแนนที่กรอกแล้วแต่ยังไม่ได้บันทึก\n\nกด “ยกเลิก” เพื่อกลับไปกดบันทึกคะแนนก่อน\nกด “ตกลง” หากต้องการออกโดยไม่บันทึก");
+}
+function markWorkScoresDirty(){unsavedWorkScores=true}
+function markExamScoresDirty(){unsavedExamScores=true}
+function clearWorkScoresDirty(){unsavedWorkScores=false}
+function clearExamScoresDirty(){unsavedExamScores=false}
+window.addEventListener("beforeunload",e=>{
+  if(!hasUnsavedScores())return;
+  e.preventDefault();
+  e.returnValue="";
+});
+
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)};
 const savePopup=m=>window.alert(`✅ ${m}`);
@@ -141,7 +157,12 @@ $("#studentCodeLoginBtn").onclick=async()=>{
 $("#studentCodeLogin")?.addEventListener("keydown",e=>{if(e.key==="Enter")$("#studentCodeLoginBtn").click();});
 
 
-$$(".nav").forEach(b=>b.dataset.view&&(b.onclick=()=>setView(b.dataset.view)));
+$$(".nav").forEach(b=>b.dataset.view&&(b.onclick=()=>{
+  const activeView=$(".view.active")?.id||"";
+  if(activeView==="scores" && b.dataset.view!=="scores" && !confirmDiscardUnsavedScores())return;
+  if(activeView==="scores" && b.dataset.view!=="scores"){clearWorkScoresDirty();clearExamScoresDirty();}
+  setView(b.dataset.view);
+}));
 function setView(v){
   $$(".view").forEach(x=>x.classList.toggle("active",x.id===v));
   $$(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));
@@ -195,13 +216,21 @@ function renderRoomSelect(){
   $("#roomSelect").value=currentRoomId||"";
 }
 $("#subjectSelect").onchange=async e=>{
-  currentSubject=e.target.value;
+  const nextSubject=e.target.value;
+  if(hasUnsavedScores()&&!confirmDiscardUnsavedScores()){e.target.value=currentSubject;return;}
+  clearWorkScoresDirty();clearExamScoresDirty();
+  currentSubject=nextSubject;
   currentRoomId=filteredRooms()[0]?.id||null;
   currentWorkId=null;randomHistory=[];
   renderRoomSelect();
   if(currentRoomId)await loadRoomData();
 };
-$("#roomSelect").onchange=async e=>{currentRoomId=e.target.value;currentSubject=rooms.find(r=>r.id===currentRoomId)?.subject_name||currentSubject;currentWorkId=null;randomHistory=[];await loadRoomData()};
+$("#roomSelect").onchange=async e=>{
+  const nextRoom=e.target.value;
+  if(hasUnsavedScores()&&!confirmDiscardUnsavedScores()){e.target.value=currentRoomId||"";return;}
+  clearWorkScoresDirty();clearExamScoresDirty();
+  currentRoomId=nextRoom;currentSubject=rooms.find(r=>r.id===currentRoomId)?.subject_name||currentSubject;currentWorkId=null;randomHistory=[];await loadRoomData()
+};
 $("#addRoomBtn").onclick=()=>openModal("เพิ่มห้องเรียน",`<label>ชื่อห้อง<input id="mRoom" placeholder="เช่น ม.4/1"></label><label>ชื่อรายวิชา<input id="mSubject" placeholder="เช่น ประวัติศาสตร์ 3" value="${esc(currentSubject)}"></label>`,async()=>{
   const name=$("#mRoom").value.trim(),subject_name=$("#mSubject").value.trim();if(!name)return toast("กรอกชื่อห้อง");
   const {data:r,error}=await sb.from("rooms").insert({owner_id:user.id,name,subject_name}).select().single();if(error)return toast(error.message);
@@ -654,7 +683,7 @@ async function exportAttendanceExcel(){
 
   const sessionPresentRow=["","","จำนวนมาเรียนรายคาบ","",...sessions.map(x=>records.filter(r=>r.day===x.day&&(Number(r.period)||1)===x.period&&r.status==="present").length),"","","","",""];
   const wsDaily=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.10"],
+    ["BJR Smart Classroom V5.5.11"],
     [`สรุปการเข้าเรียนรายคาบ: ${room}`],
     [`รายวิชา: ${subject}`],
     [`ช่วงข้อมูล: ${fullThaiDate(sessions[0].day)} ถึง ${fullThaiDate(sessions[sessions.length-1].day)}`],
@@ -675,7 +704,7 @@ async function exportAttendanceExcel(){
     return [s.student_no,s.student_code||"",s.name,count("present"),count("late"),count("leave"),count("absent"),count("activity"),count("leave")+count("absent"),vals.length,leaveNotes];
   });
   const wsPerson=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.10"],
+    ["BJR Smart Classroom V5.5.11"],
     [`สรุปสถิติการเข้าเรียนรายบุคคล: ${room}`],
     [`รายวิชา: ${subject}`],
     [],personHeaders,...personRows
@@ -694,7 +723,7 @@ async function exportAttendanceExcel(){
     return [i+1,fullThaiDate(x.day),x.period,count("present"),count("late"),count("leave"),count("absent"),count("activity"),count("leave")+count("absent"),rows.length,leaveDetails];
   });
   const wsDates=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.10"],
+    ["BJR Smart Classroom V5.5.11"],
     [`สรุปตามวันที่และคาบ: ${room}`],
     [`รายวิชา: ${subject}`],
     [],dateHeaders,...dateRows
@@ -785,12 +814,19 @@ function installExamBulkPaste(){
 
 function renderScores(){
   $("#workTabs").innerHTML=works.map((w,i)=>`<button class="tab work-tab-alt-${i%2} ${w.id===currentWorkId?"active":""}" data-work="${w.id}">${esc(w.name)}</button>`).join("");
-  $$("[data-work]").forEach(b=>b.onclick=()=>{currentWorkId=b.dataset.work;renderScores()});
+  $$("[data-work]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.work===currentWorkId)return;
+    if(unsavedWorkScores&&!confirmDiscardUnsavedScores())return;
+    clearWorkScoresDirty();
+    currentWorkId=b.dataset.work;renderScores()
+  });
   const w=works.find(x=>x.id===currentWorkId);$("#workEditor").classList.toggle("hidden",!w);$("#noWork").classList.toggle("hidden",!!w);if(!w)return;
   $("#workName").value=w.name;$("#workMax").value=w.max_score;
   $("#scoreList").innerHTML=students.map(s=>`<div class="row"><div class="no">${s.student_no}</div><b class="${missingWorkCount(s.id)>0?"student-name-missing":""}">${esc(s.name)}</b><input class="scoreinp" data-score="${s.id}" type="number" inputmode="decimal" min="0" max="${w.max_score}" value="${scores[w.id]?.[s.id]??""}" placeholder="คะแนน"></div>`).join("")||`<div class="empty">ยังไม่มีนักเรียน</div>`;
   const scoreInputs=$$("#scoreList .scoreinp");
   scoreInputs.forEach((inp,index)=>{
+    inp.addEventListener("input",markWorkScoresDirty);
+    inp.addEventListener("paste",markWorkScoresDirty);
     inp.onkeydown=e=>{
       if(e.key!=="ArrowDown"&&e.key!=="ArrowUp")return;
       e.preventDefault();
@@ -810,6 +846,7 @@ $("#saveScoresBtn").onclick=async()=>{
   const w=works.find(x=>x.id===currentWorkId);if(!w)return;
   const rows=[];$$("[data-score]").forEach(i=>{if(i.value!=="")rows.push({owner_id:user.id,room_id:currentRoomId,assignment_id:w.id,student_id:i.dataset.score,score:Math.max(0,Math.min(Number(w.max_score),Number(i.value)))})});
   if(rows.length){const {error}=await sb.from("scores").upsert(rows,{onConflict:"assignment_id,student_id"});if(error)return toast(error.message)}
+  clearWorkScoresDirty();
   await loadRoomData();toast("บันทึกคะแนนแล้ว");savePopup("บันทึกคะแนนเก็บเรียบร้อยแล้ว");
 };
 
@@ -820,6 +857,7 @@ function renderExamScores(){
     return `<tr><td>${s.student_no}</td><td>${esc(s.student_code||"—")}</td><td class="student-name ${missingWorkCount(s.id)>0?"student-name-missing":""}">${esc(s.name)}</td><td class="course60-col"><b>${course}</b></td><td class="mid20-col"><input class="exam-input mid-input" data-mid="${s.id}" type="number" min="0" max="20" step="0.5" value="${e.midterm??""}" placeholder="0-20"></td><td class="final20-col"><input class="exam-input final-input" data-final="${s.id}" type="number" min="0" max="20" step="0.5" value="${e.final??""}" placeholder="0-20"></td><td class="total100-col"><b data-grand="${s.id}">${total}</b></td><td><span class="grade-badge" data-grade="${s.id}">${grade}</span></td></tr>`;
   }).join("")||`<tr><td colspan="8">ยังไม่มีนักเรียน</td></tr>`;
   $$('[data-mid], [data-final]').forEach(i=>i.oninput=()=>{
+    markExamScoresDirty();
     const id=i.dataset.mid||i.dataset.final, mid=num($(`[data-mid="${id}"]`)?.value), fin=num($(`[data-final="${id}"]`)?.value);
     const total=courseworkRounded(id)+Math.min(20,Math.max(0,mid))+Math.min(20,Math.max(0,fin));
     const g=$(`[data-grand="${id}"]`), gr=$(`[data-grade="${id}"]`); if(g)g.textContent=total; if(gr)gr.textContent=gradeFromTotal(total);
@@ -835,6 +873,7 @@ function renderExamScores(){
       };
     });
   });
+  $$('[data-mid], [data-final]').forEach(i=>i.addEventListener("paste",markExamScoresDirty));
   installExamBulkPaste();
 }
 
@@ -848,6 +887,7 @@ $("#saveExamScoresBtn").onclick=async()=>{
   });
   const {error}=await sb.from("exam_scores").upsert(rows,{onConflict:"student_id"});
   if(error)return toast(error.message);
+  clearExamScoresDirty();
   await loadRoomData();toast("บันทึกคะแนนกลางภาคและปลายภาคแล้ว");savePopup("บันทึกคะแนนกลางภาคและคะแนนปลายภาคเรียบร้อยแล้ว");
 };
 
@@ -867,7 +907,7 @@ function exportRoomExcel(){
     return [s.student_no,s.student_code||"",s.name,...works.map(w=>scores[w.id]?.[s.id]??""),courseExcel,missingWorkCount(s.id),e.midterm??"",e.final??"",total,gradeFromTotal(total)];
   });
   const ws=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.10"],
+    ["BJR Smart Classroom V5.5.11"],
     [`สรุปคะแนนรายห้อง: ${room}`],[`รายวิชา: ${rooms.find(r=>r.id===currentRoomId)?.subject_name||"ยังไม่ระบุรายวิชา"}`],
     ["เกณฑ์เกรด: 0=0-49 | 1=50-54 | 1.5=55-59 | 2=60-64 | 2.5=65-69 | 3=70-74 | 3.5=75-79 | 4=80-100"],
     ["หมายเหตุ: คะแนนชิ้นงานรวม /60 หากมีเศษตั้งแต่ .5 ขึ้นไป ระบบปัดขึ้นเป็นจำนวนเต็ม และใช้ค่าที่ปัดแล้วคำนวณคะแนนรวม /100 และเกรด โดยไม่แก้คะแนนดิบรายชิ้นงาน"],
