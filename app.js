@@ -30,6 +30,9 @@ function missingWorkCount(studentId){
 function missingWorkCountFromAssignments(list){
   return (list||[]).filter(a=>a.score===null||a.score===undefined||a.score==="").length;
 }
+function missingWorkNames(studentId){
+  return works.filter(w=>!Object.prototype.hasOwnProperty.call(scores[w.id]||{},studentId)).map(w=>w.name);
+}
 function gradeFromTotal(total){
   const n=Number(total)||0;
   if(n>=80)return 4; if(n>=75)return 3.5; if(n>=70)return 3; if(n>=65)return 2.5;
@@ -141,19 +144,26 @@ $$(".nav").forEach(b=>b.dataset.view&&(b.onclick=()=>setView(b.dataset.view)));
 function setView(v){
   $$(".view").forEach(x=>x.classList.toggle("active",x.id===v));
   $$(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));
-  const t={dashboard:"Dashboard",attendance:"เช็กชื่อ",random:"สุ่มนักเรียน",scores:"คะแนน",behavior:"พฤติกรรม",students:"นักเรียน",links:"ลิงก์/QR"};
+  const t={dashboard:"Dashboard",attendance:"เช็กชื่อ",random:"สุ่มนักเรียน",scores:"คะแนน",behavior:"พฤติกรรม",students:"นักเรียน",links:"ลิงก์/QR",missingWork:"สรุปงานค้าง"};
   $("#pageTitle").textContent=t[v]||"Smart Classroom";
   if(v==="links")renderLinks();
 }
 
-function openScoresFromMissingStat(){
-  setView("scores");
+function openMissingWorkDetail(studentId=""){
+  renderMissingWorkDetail(studentId);
+  setView("missingWork");
   window.scrollTo({top:0,behavior:"smooth"});
 }
+function openScoresFromMissingStat(){openMissingWorkDetail();}
 $("#missingStudentsLink")?.addEventListener("click",openScoresFromMissingStat);
 $("#missingStudentsLink")?.addEventListener("keydown",e=>{
   if(e.key==="Enter"||e.key===" "){e.preventDefault();openScoresFromMissingStat();}
 });
+document.addEventListener("click",e=>{
+  const btn=e.target.closest?.("[data-missing-student]");
+  if(btn)openMissingWorkDetail(btn.dataset.missingStudent||"");
+});
+$("#missingWorkBackBtn")?.addEventListener("click",()=>setView("dashboard"));
 
 async function loadRooms(){
   const {data,error}=await sb.from("rooms").select("*").order("created_at");
@@ -229,7 +239,7 @@ async function loadRoomData(){
   if(!currentWorkId||!works.some(w=>w.id===currentWorkId))currentWorkId=works[0]?.id||null;
   renderAll();
 }
-function renderAll(){renderDashboard();renderAttendance();renderAttendanceSummary();renderRandom();renderScores();renderExamScores();renderBehavior();renderStudents();renderLinks()}
+function renderAll(){renderDashboard();renderMissingWorkDetail();renderAttendance();renderAttendanceSummary();renderRandom();renderScores();renderExamScores();renderBehavior();renderStudents();renderLinks()}
 
 function renderDashboard(){
   const r=rooms.find(x=>x.id===currentRoomId);$("#heroRoom").textContent=`${r?.name||""}${r?.subject_name?` • ${r.subject_name}`:""}`;
@@ -274,9 +284,9 @@ function renderDashboard(){
       <th>เลขที่</th>
       <th>รหัสนักเรียน</th>
       <th>ชื่อ-นามสกุล</th>
+      <th>ไม่ได้ส่งงาน<small>(ชิ้น)</small></th>
       ${assignmentHeads}
       <th>รวมชิ้นงาน<small>/60</small></th>
-      <th>ไม่ได้ส่งงาน<small>(ชิ้น)</small></th>
       <th>กลางภาค<small>/20</small></th>
       <th>ปลายภาค<small>/20</small></th>
       <th>รวม<small>/100</small></th>
@@ -301,9 +311,11 @@ function renderDashboard(){
           <td>${s.student_no}</td>
           <td>${esc(s.student_code||"—")}</td>
           <td class="student-name ${missingWorkCount(s.id)>0?"student-name-missing":""}">${esc(s.name)}</td>
+          <td>${missingWorkCount(s.id)>0
+            ?`<button type="button" class="missing-work-badge has-missing missing-work-open" data-missing-student="${s.id}" title="กดดูชิ้นงานที่ยังไม่ส่ง">${missingWorkCount(s.id)}</button>`
+            :`<span class="missing-work-badge no-missing">0</span>`}</td>
           ${workCells}
           <td><b>${course}</b></td>
-          <td><span class="missing-work-badge ${missingWorkCount(s.id)>0?"has-missing":"no-missing"}">${missingWorkCount(s.id)}</span></td>
           <td>${e.midterm??"—"}</td>
           <td>${e.final??"—"}</td>
           <td><b>${total}</b></td>
@@ -311,6 +323,24 @@ function renderDashboard(){
         </tr>`;
       }).join("")||`<tr><td colspan="${colspan}" class="empty">ยังไม่มีนักเรียน</td></tr>`;
   }
+}
+
+function renderMissingWorkDetail(focusStudentId=""){
+  const body=$("#missingWorkDetailBody"), summary=$("#missingWorkSummary");
+  if(!body||!summary)return;
+  const missing=[...students]
+    .map(s=>({...s,missingNames:missingWorkNames(s.id)}))
+    .filter(s=>s.missingNames.length>0)
+    .sort((a,b)=>Number(a.student_no)-Number(b.student_no));
+  const totalPieces=missing.reduce((n,s)=>n+s.missingNames.length,0);
+  summary.innerHTML=`<div><span>นักเรียนมีงานค้าง</span><strong>${missing.length}</strong><small>คน</small></div><div><span>งานค้างรวม</span><strong>${totalPieces}</strong><small>ชิ้น</small></div>`;
+  body.innerHTML=missing.map(s=>`<tr class="${s.id===focusStudentId?"missing-focus-row":""}" data-missing-row="${s.id}">
+    <td>${s.student_no}</td><td>${esc(s.student_code||"—")}</td>
+    <td class="student-name student-name-missing">${esc(s.name)}</td>
+    <td><span class="missing-work-badge has-missing">${s.missingNames.length}</span></td>
+    <td><div class="missing-assignment-list">${s.missingNames.map((name,i)=>`<span><b>${i+1}.</b> ${esc(name)}</span>`).join("")}</div></td>
+  </tr>`).join("")||`<tr><td colspan="5" class="empty">🎉 นักเรียนส่งงานครบทุกชิ้นแล้ว</td></tr>`;
+  if(focusStudentId){setTimeout(()=>document.querySelector(`[data-missing-row="${focusStudentId}"]`)?.scrollIntoView({behavior:"smooth",block:"center"}),60);}
 }
 
 function attendanceDateText(){

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b74de">
-  <title>BJR Smart Classroom V5.5.6 Online</title>
+  <title>BJR Smart Classroom V5.5.7 Online</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -80,7 +80,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="logo small school-brand-logo"><img src="school-logo-real.jpg" alt="ตราโรงเรียน"></div>
-        <div class="brand-text"><b>Smart Classroom</b><small>V5.5.6 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
+        <div class="brand-text"><b>Smart Classroom</b><small>V5.5.7 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
       </div>
       <nav>
         <button class="nav active" data-view="dashboard">🏠 Dashboard</button>
@@ -134,6 +134,25 @@
             <table class="dashboard-score-table">
               <thead id="dashScoreHead"></thead>
               <tbody id="dashScoreBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="missingWork" class="view">
+        <div class="card missing-work-detail-card">
+          <div class="section-head">
+            <div>
+              <h3>สรุปงานค้างรายนักเรียน</h3>
+              <p id="missingWorkCaption">แสดงนักเรียนที่ยังส่งงานไม่ครบ พร้อมรายชื่อชิ้นงานที่ขาด</p>
+            </div>
+            <button class="btn ghost" id="missingWorkBackBtn" type="button">← กลับ Dashboard</button>
+          </div>
+          <div class="missing-work-summary" id="missingWorkSummary"></div>
+          <div class="table-wrap">
+            <table class="missing-work-detail-table">
+              <thead><tr><th>เลขที่</th><th>รหัสนักเรียน</th><th>ชื่อ-นามสกุล</th><th>งานค้าง</th><th>ชิ้นงานที่ยังไม่ส่ง</th></tr></thead>
+              <tbody id="missingWorkDetailBody"></tbody>
             </table>
           </div>
         </div>
