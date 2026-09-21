@@ -7,7 +7,7 @@ const DEFAULT_SUPABASE_CONFIG=Object.freeze({
   key:"sb_publishable_4OKXjLwU3UGn09eN0tsxkw_wVrfgm87"
 });
 let cfg={...DEFAULT_SUPABASE_CONFIG};
-let sb=null,user=null,rooms=[],currentRoomId=null,currentSubject="",students=[],works=[],attendance={},attendanceNotes={},attendanceHistory=[],behavior={},scores={},examScores={},currentWorkId=null,randomHistory=[],attendanceDate="",attendancePeriod=1;
+let sb=null,user=null,rooms=[],currentRoomId=null,currentSubject="",students=[],works=[],attendance={},attendanceNotes={},attendanceHistory=[],behavior={},scores={},examScores={},currentWorkId=null,randomHistory=[],attendanceDate="",attendancePeriod=null;
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)};
@@ -224,7 +224,7 @@ async function loadRoomData(){
   const [s,w,a,ah,b,sc,ex]=await Promise.all([
     sb.from("students").select("*").eq("room_id",currentRoomId).order("student_no"),
     sb.from("assignments").select("*").eq("room_id",currentRoomId).order("created_at"),
-    sb.from("attendance").select("*").eq("room_id",currentRoomId).eq("day",attendanceDate).eq("period",attendancePeriod),
+    attendancePeriod ? sb.from("attendance").select("*").eq("room_id",currentRoomId).eq("day",attendanceDate).eq("period",attendancePeriod) : Promise.resolve({data:[],error:null}),
     sb.from("attendance").select("student_id,day,period,status,note").eq("room_id",currentRoomId).order("day").order("period"),
     sb.from("behavior").select("*").eq("room_id",currentRoomId),
     sb.from("scores").select("*").eq("room_id",currentRoomId),
@@ -250,11 +250,11 @@ function renderDashboard(){
   const totals=students.map(s=>studentGrandTotal(s.id));
   $("#stAvg").textContent=totals.length?(totals.reduce((a,b)=>a+b,0)/totals.length).toFixed(1):"0";
   const avgMax=$("#stAvgMax"); if(avgMax)avgMax.textContent=`/ ${roomMax}`;
-  const c={present:0,late:0,leave:0,absent:0};students.forEach(s=>c[attendance[s.id]]!=null&&c[attendance[s.id]]++);
-  $("#dashAttendance").innerHTML=[["มา",c.present],["สาย",c.late],["ลา",c.leave],["ขาด",c.absent]].map(([n,v])=>`<div class="barrow"><span>${n}</span><div class="bar"><i style="width:${students.length?v/students.length*100:0}%"></i></div><b>${v}</b></div>`).join("");
+  const c={present:0,late:0,leave:0,absent:0,activity:0};students.forEach(s=>c[attendance[s.id]]!=null&&c[attendance[s.id]]++);
+  $("#dashAttendance").innerHTML=[["มา",c.present],["สาย",c.late],["ลา",c.leave],["ขาด",c.absent],["กิจกรรม",c.activity]].map(([n,v])=>`<div class="barrow"><span>${n}</span><div class="bar"><i style="width:${students.length?v/students.length*100:0}%"></i></div><b>${v}</b></div>`).join("");
   const dateText=new Intl.DateTimeFormat("th-TH",{day:"numeric",month:"short",year:"numeric"}).format(new Date(attendanceDate+"T12:00:00"));
-  const presentLabel=$("#stPresentLabel"); if(presentLabel)presentLabel.textContent=`มาเรียนคาบ ${attendancePeriod}`;
-  const attTitle=$("#dashAttendanceTitle"); if(attTitle)attTitle.textContent=`สถานะการเข้าเรียน • ${dateText} • คาบ ${attendancePeriod}`;
+  const presentLabel=$("#stPresentLabel"); if(presentLabel)presentLabel.textContent=attendancePeriod?`มาเรียนคาบ ${attendancePeriod}`:"ยังไม่ได้เลือกคาบ";
+  const attTitle=$("#dashAttendanceTitle"); if(attTitle)attTitle.textContent=attendancePeriod?`สถานะการเข้าเรียน • ${dateText} • คาบ ${attendancePeriod}`:`สถานะการเข้าเรียน • ${dateText} • กรุณาเลือกคาบ`;
   $("#dashStars").innerHTML=[...students]
     .map(s=>({...s,total:studentGrandTotal(s.id)}))
     .sort((a,b)=>b.total-a.total||Number(a.student_no)-Number(b.student_no))
@@ -348,6 +348,7 @@ function attendanceDateText(){
 }
 async function loadAttendanceForDate(day){
   attendanceDate=day||today();
+  if(!attendancePeriod){attendance={};attendanceNotes={};renderAttendance();renderDashboard();return;}
   const {data,error}=await sb.from("attendance").select("*").eq("room_id",currentRoomId).eq("day",attendanceDate).eq("period",attendancePeriod);
   if(error)return toast(error.message);
   attendance=Object.fromEntries((data||[]).map(x=>[x.student_id,x.status]));
@@ -362,17 +363,17 @@ function renderAttendance(){
   const thaiDateBtn=$("#thaiDateBtn");
   if(thaiDateBtn)thaiDateBtn.textContent=attendanceDateText();
   const periodSelect=$("#attendancePeriod");
-  if(periodSelect)periodSelect.value=String(attendancePeriod);
+  if(periodSelect)periodSelect.value=attendancePeriod?String(attendancePeriod):"";
   const caption=$("#attendanceDateCaption");
-  if(caption)caption.textContent=`กำลังเช็กชื่อ: ${attendanceDateText()} • คาบ ${attendancePeriod}`;
-  const labs=[["present","มา"],["late","สาย"],["leave","ลา"],["absent","ขาด"]];
+  if(caption)caption.textContent=attendancePeriod?`กำลังเช็กชื่อ: ${attendanceDateText()} • คาบ ${attendancePeriod}`:`กำลังเช็กชื่อ: ${attendanceDateText()} • ⚠️ กรุณาเลือกคาบก่อนเช็กชื่อ`;
+  const labs=[["present","มา"],["late","สาย"],["leave","ลา"],["absent","ขาด"],["activity","กิจกรรม"]];
   $("#attendanceList").innerHTML=students.map(s=>{
     const isLeave=attendance[s.id]==="leave";
     return `<div class="attendance-student">
       <div class="row">
         <div class="no">${s.student_no}</div>
         <b>${esc(s.name)}</b>
-        <div class="actions">${labs.map(([k,n])=>`<button class="status ${k} ${attendance[s.id]===k?"on":""}" data-att="${s.id}" data-status="${k}">${n}</button>`).join("")}</div>
+        <div class="actions">${labs.map(([k,n])=>`<button class="status ${k} ${attendance[s.id]===k?"on":""}" data-att="${s.id}" data-status="${k}" ${attendancePeriod?"":"disabled"}>${n}</button>`).join("")}</div>
       </div>
       ${isLeave?`<div class="leave-note-row">
         <label>เหตุผล/หมายเหตุการลา
@@ -421,7 +422,7 @@ function fullThaiDate(day){
   return new Intl.DateTimeFormat("th-TH",{day:"numeric",month:"short",year:"numeric"}).format(new Date(day+"T12:00:00"));
 }
 function attendanceMark(status){
-  return ({present:"/",late:"ส",leave:"ล",absent:"ข"})[status]||"";
+  return ({present:"/",late:"ส",leave:"ล",absent:"ข",activity:"ก"})[status]||"";
 }
 async function refreshAttendanceHistory(){
   const {data,error}=await sb.from("attendance").select("student_id,day,period,status,note").eq("room_id",currentRoomId).order("day").order("period");
@@ -454,7 +455,7 @@ function renderAttendanceSummary(){
     <th class="name-col">ชื่อ-นามสกุล</th>
     <th>รวมคาบเรียน</th>
     ${sessionHeads}
-    <th>มา</th><th>สาย</th><th>ลา</th><th>ขาด</th><th>รวมคาบลา</th>
+    <th>มา</th><th>สาย</th><th>ลา</th><th>ขาด</th><th>กิจกรรม</th><th>รวมคาบลา</th>
   </tr>`;
 
   if(!students.length){
@@ -490,18 +491,18 @@ function renderAttendanceSummary(){
   const sessionSummary=sessions.map(x=>{
     const rows=attendanceHistory.filter(r=>r.day===x.day&&(Number(r.period)||1)===x.period);
     const count=k=>rows.filter(r=>r.status===k).length;
-    return {day:x.day,period:x.period,present:count("present"),late:count("late"),leave:count("leave"),absent:count("absent"),total:rows.length};
+    return {day:x.day,period:x.period,present:count("present"),late:count("late"),leave:count("leave"),absent:count("absent"),activity:count("activity"),total:rows.length};
   });
 
   foot.innerHTML=sessions.length?`<tr class="summary-foot-row">
     <td colspan="4"><b>จำนวนผู้มาเรียนรายคาบ</b></td>
     ${sessionSummary.map(x=>`<td title="${fullThaiDate(x.day)} • คาบ ${x.period}"><b>${x.present}</b></td>`).join("")}
-    <td colspan="5"></td>
+    <td colspan="6"></td>
   </tr>`:"";
 
   cards.innerHTML=sessionSummary.map(x=>`<div class="daily-summary-card">
     <b>${fullThaiDate(x.day)} • คาบ ${x.period}</b>
-    <div class="daily-counts"><span>มา <strong>${x.present}</strong></span><span>สาย <strong>${x.late}</strong></span><span>ลา <strong>${x.leave}</strong></span><span>ขาด <strong>${x.absent}</strong></span><span class="total-leave">รวมคาบลา <strong>${x.leave+x.absent}</strong></span></div>
+    <div class="daily-counts"><span>มา <strong>${x.present}</strong></span><span>สาย <strong>${x.late}</strong></span><span>ลา <strong>${x.leave}</strong></span><span>ขาด <strong>${x.absent}</strong></span><span class="activity-count">กิจกรรม <strong>${x.activity}</strong></span><span class="total-leave">รวมคาบลา <strong>${x.leave+x.absent}</strong></span></div>
   </div>`).join("")||`<div class="empty">ยังไม่มีข้อมูลการเช็กชื่อ</div>`;
 }
 $("#refreshAttendanceSummaryBtn").onclick=refreshAttendanceHistory;
@@ -576,10 +577,11 @@ $("#calNextMonth").onclick=()=>{
 };
 $("#todayAttendanceBtn").onclick=async()=>await loadAttendanceForDate(today());
 $("#attendancePeriod").onchange=async e=>{
-  attendancePeriod=Math.max(1,Math.min(9,Number(e.target.value)||1));
+  attendancePeriod=e.target.value?Math.max(1,Math.min(9,Number(e.target.value))):null;
   await loadAttendanceForDate(attendanceDate);
 };
 $("#saveAttendanceBtn").onclick=async()=>{
+  if(!attendancePeriod)return alert("⚠️ กรุณาเลือกคาบเรียนก่อนบันทึกข้อมูล");
   const rows=students
     .filter(s=>attendance[s.id])
     .map(s=>({owner_id:user.id,room_id:currentRoomId,student_id:s.id,day:attendanceDate,period:attendancePeriod,status:attendance[s.id],note:attendance[s.id]==="leave"?(attendanceNotes[s.id]||""):""}));
@@ -597,6 +599,7 @@ $("#saveAttendanceBtn").onclick=async()=>{
   alert(`✅ บันทึกข้อมูลการเช็กชื่อเรียบร้อยแล้ว\n${attendanceDateText()} • คาบ ${attendancePeriod}`);
 };
 $("#allPresentBtn").onclick=async()=>{
+  if(!attendancePeriod)return alert("⚠️ กรุณาเลือกคาบเรียนก่อนกำหนดมาเรียนทั้งหมด");
   if(!students.length)return;
   const rows=students.map(s=>({owner_id:user.id,room_id:currentRoomId,student_id:s.id,day:attendanceDate,period:attendancePeriod,status:"present",note:""}));
   const {error}=await sb.from("attendance").upsert(rows,{onConflict:"student_id,day,period"});
@@ -644,17 +647,17 @@ async function exportAttendanceExcel(){
 
   const sessionPresentRow=["","","จำนวนมาเรียนรายคาบ","",...sessions.map(x=>records.filter(r=>r.day===x.day&&(Number(r.period)||1)===x.period&&r.status==="present").length),"","","","",""];
   const wsDaily=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.5"],
+    ["BJR Smart Classroom V5.5.8"],
     [`สรุปการเข้าเรียนรายคาบ: ${room}`],
     [`รายวิชา: ${subject}`],
     [`ช่วงข้อมูล: ${fullThaiDate(sessions[0].day)} ถึง ${fullThaiDate(sessions[sessions.length-1].day)}`],
-    ["สัญลักษณ์: / = มา | ส = สาย | ล = ลา | ข = ขาด"],
+    ["สัญลักษณ์: / = มา | ส = สาย | ล = ลา | ข = ขาด | ก = กิจกรรม"],
     [],detailHeaders,...detailRows,sessionPresentRow
   ]);
   wsDaily["!cols"]=[{wch:8},{wch:16},{wch:28},{wch:12},...sessions.map(()=>({wch:14})),{wch:8},{wch:8},{wch:8},{wch:8},{wch:12}];
   wsDaily["!freeze"]={xSplit:4,ySplit:7};
 
-  const personHeaders=["เลขที่","รหัสนักเรียน","ชื่อ-นามสกุล","มา","สาย","ลา","ขาด","รวมคาบลา","บันทึกรวม","หมายเหตุการลา"];
+  const personHeaders=["เลขที่","รหัสนักเรียน","ชื่อ-นามสกุล","มา","สาย","ลา","ขาด","กิจกรรม","รวมคาบลา","บันทึกรวม","หมายเหตุการลา"];
   const personRows=[...students].sort((a,b)=>Number(a.student_no)-Number(b.student_no)).map(s=>{
     const vals=Object.values(byStudent[s.id]||{});
     const count=k=>vals.filter(v=>v===k).length;
@@ -662,10 +665,10 @@ async function exportAttendanceExcel(){
       .filter(x=>byStudent[s.id]?.[keyOf(x.day,x.period)]==="leave"&&noteByStudent[s.id]?.[keyOf(x.day,x.period)])
       .map(x=>`${fullThaiDate(x.day)} คาบ ${x.period}: ${noteByStudent[s.id][keyOf(x.day,x.period)]}`)
       .join(" | ");
-    return [s.student_no,s.student_code||"",s.name,count("present"),count("late"),count("leave"),count("absent"),count("leave")+count("absent"),vals.length,leaveNotes];
+    return [s.student_no,s.student_code||"",s.name,count("present"),count("late"),count("leave"),count("absent"),count("activity"),count("leave")+count("absent"),vals.length,leaveNotes];
   });
   const wsPerson=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.5"],
+    ["BJR Smart Classroom V5.5.8"],
     [`สรุปสถิติการเข้าเรียนรายบุคคล: ${room}`],
     [`รายวิชา: ${subject}`],
     [],personHeaders,...personRows
@@ -673,7 +676,7 @@ async function exportAttendanceExcel(){
   wsPerson["!cols"]=[{wch:8},{wch:16},{wch:28},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:55}];
   wsPerson["!freeze"]={xSplit:0,ySplit:5};
 
-  const dateHeaders=["ลำดับ","วันที่","คาบ","มา","สาย","ลา","ขาด","รวมคาบลา","บันทึกรวม","หมายเหตุการลา"];
+  const dateHeaders=["ลำดับ","วันที่","คาบ","มา","สาย","ลา","ขาด","กิจกรรม","รวมคาบลา","บันทึกรวม","หมายเหตุการลา"];
   const dateRows=sessions.map((x,i)=>{
     const rows=records.filter(r=>r.day===x.day&&(Number(r.period)||1)===x.period);
     const count=k=>rows.filter(r=>r.status===k).length;
@@ -681,10 +684,10 @@ async function exportAttendanceExcel(){
       const st=students.find(s=>s.id===r.student_id);
       return `${st?.name||"นักเรียน"}: ${r.note}`;
     }).join(" | ");
-    return [i+1,fullThaiDate(x.day),x.period,count("present"),count("late"),count("leave"),count("absent"),count("leave")+count("absent"),rows.length,leaveDetails];
+    return [i+1,fullThaiDate(x.day),x.period,count("present"),count("late"),count("leave"),count("absent"),count("activity"),count("leave")+count("absent"),rows.length,leaveDetails];
   });
   const wsDates=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.5"],
+    ["BJR Smart Classroom V5.5.8"],
     [`สรุปตามวันที่และคาบ: ${room}`],
     [`รายวิชา: ${subject}`],
     [],dateHeaders,...dateRows
@@ -841,19 +844,26 @@ $("#saveExamScoresBtn").onclick=async()=>{
   await loadRoomData();toast("บันทึกคะแนนกลางภาคและปลายภาคแล้ว");savePopup("บันทึกคะแนนกลางภาคและคะแนนปลายภาคเรียบร้อยแล้ว");
 };
 
+
+function courseworkExcelValue(value){
+  const n=Number(value)||0;
+  const fraction=n-Math.floor(n);
+  return fraction>=0.5?Math.ceil(n):n;
+}
 function exportRoomExcel(){
   if(!window.XLSX)return toast("โหลดระบบ Excel ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ต");
   if(!students.length)return toast("ยังไม่มีนักเรียน");
   const room=rooms.find(r=>r.id===currentRoomId)?.name||"ห้องเรียน";
   const headers=["เลขที่","รหัสนักเรียน","ชื่อ-นามสกุล",...works.map(w=>`${w.name} (${w.max_score})`),"คะแนนชิ้นงานรวม","ไม่ได้ส่งงาน (ชิ้น)","กลางภาค (20)","ปลายภาค (20)","คะแนนรวม","เกรด"];
   const rows=students.map(s=>{
-    const e=examScores[s.id]||{}, course=courseworkTotal(s.id), total=studentGrandTotal(s.id);
-    return [s.student_no,s.student_code||"",s.name,...works.map(w=>scores[w.id]?.[s.id]??""),course,missingWorkCount(s.id),e.midterm??"",e.final??"",total,gradeFromTotal(total)];
+    const e=examScores[s.id]||{}, course=courseworkTotal(s.id), courseExcel=courseworkExcelValue(course), total=studentGrandTotal(s.id);
+    return [s.student_no,s.student_code||"",s.name,...works.map(w=>scores[w.id]?.[s.id]??""),courseExcel,missingWorkCount(s.id),e.midterm??"",e.final??"",total,gradeFromTotal(total)];
   });
   const ws=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.5"],
+    ["BJR Smart Classroom V5.5.8"],
     [`สรุปคะแนนรายห้อง: ${room}`],[`รายวิชา: ${rooms.find(r=>r.id===currentRoomId)?.subject_name||"ยังไม่ระบุรายวิชา"}`],
     ["เกณฑ์เกรด: 0=0-49 | 1=50-54 | 1.5=55-59 | 2=60-64 | 2.5=65-69 | 3=70-74 | 3.5=75-79 | 4=80-100"],
+    ["หมายเหตุ: คะแนนชิ้นงานรวม /60 ใน Excel หากมีเศษตั้งแต่ .5 ขึ้นไป ระบบปัดขึ้นเป็นจำนวนเต็ม โดยไม่แก้คะแนนดิบในระบบ"],
     [],headers,...rows
   ]);
   ws['!cols']=headers.map((h,i)=>({wch:i===1?28:Math.max(10,Math.min(22,String(h).length+2))}));

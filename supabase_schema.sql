@@ -48,7 +48,7 @@ create table if not exists public.attendance (
   student_id uuid not null references public.students(id) on delete cascade,
   day date not null,
   period smallint not null default 1 check (period between 1 and 9),
-  status text not null check (status in ('present','late','leave','absent')),
+  status text not null check (status in ('present','late','leave','absent','activity')),
   unique(student_id, day, period)
 );
 

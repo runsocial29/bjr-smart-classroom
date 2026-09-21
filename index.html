@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b74de">
-  <title>BJR Smart Classroom V5.5.7 Online</title>
+  <title>BJR Smart Classroom V5.5.8 Online</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -80,7 +80,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="logo small school-brand-logo"><img src="school-logo-real.jpg" alt="ตราโรงเรียน"></div>
-        <div class="brand-text"><b>Smart Classroom</b><small>V5.5.7 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
+        <div class="brand-text"><b>Smart Classroom</b><small>V5.5.8 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
       </div>
       <nav>
         <button class="nav active" data-view="dashboard">🏠 Dashboard</button>
@@ -161,7 +161,7 @@
       <section id="attendance" class="view">
         <div class="card">
           <div class="section-head">
-            <div><h3>เช็กชื่อ</h3><p>เลือกวันที่และคาบ 1–9 • มา / สาย / ลา / ขาด</p></div>
+            <div><h3>เช็กชื่อ</h3><p>เลือกวันที่และต้องเลือกคาบ 1–9 ทุกครั้ง • มา / สาย / ลา / ขาด / กิจกรรม</p></div>
             <div class="attendance-tools">
               <label class="date-picker">วันที่
                 <input type="hidden" id="attendanceDate">
@@ -169,7 +169,7 @@
               </label>
               <label class="period-picker">คาบ
                 <select id="attendancePeriod" aria-label="เลือกคาบเรียน">
-                  <option value="1">คาบ 1</option><option value="2">คาบ 2</option><option value="3">คาบ 3</option>
+                  <option value="" selected disabled>-- เลือกคาบ --</option><option value="1">คาบ 1</option><option value="2">คาบ 2</option><option value="3">คาบ 3</option>
                   <option value="4">คาบ 4</option><option value="5">คาบ 5</option><option value="6">คาบ 6</option>
                   <option value="7">คาบ 7</option><option value="8">คาบ 8</option><option value="9">คาบ 9</option>
                 </select>
@@ -198,7 +198,7 @@
               <button type="button" class="btn primary" id="calTodayBtn">วันนี้</button>
             </div>
           </div>
-          <div class="attendance-date-caption" id="attendanceDateCaption"></div><div class="attendance-tip">💡 วิธีเร็ว: เลือกวันที่ + คาบ → กด “✅ มาเรียนทั้งหมด” → แก้เฉพาะนักเรียนที่ สาย / ลา / ขาด → กด “💾 บันทึกข้อมูล” เพื่อยืนยัน</div>
+          <div class="attendance-date-caption" id="attendanceDateCaption"></div><div class="attendance-tip">💡 วิธีเร็ว: เลือกวันที่ + คาบ → กด “✅ มาเรียนทั้งหมด” → แก้เฉพาะนักเรียนที่ สาย / ลา / ขาด / กิจกรรม → กด “💾 บันทึกข้อมูล” เพื่อยืนยัน</div>
           <div id="attendanceList" class="list"></div>
         </div>
 
@@ -215,7 +215,7 @@
             <span><b>/</b> มา</span>
             <span><b>ส</b> สาย</span>
             <span><b>ล</b> ลา</span>
-            <span><b>ข</b> ขาด</span>
+            <span><b>ข</b> ขาด</span><span><b>ก</b> กิจกรรม</span>
           </div>
 
           <div class="table-wrap attendance-matrix-wrap">
@@ -252,8 +252,8 @@
               <button class="btn danger" id="deleteWorkBtn">ลบงาน</button>
             </div>
             <div class="notice">💡 วางคะแนนหลายคนได้ในครั้งเดียว: คัดลอกคะแนนเป็นคอลัมน์จาก Excel/Google Sheets แล้วคลิกช่องของนักเรียนคนแรก จากนั้นกดวาง (Ctrl+V)</div>
+            <div class="score-save-sticky"><button class="btn primary" id="saveScoresBtn">💾 บันทึกคะแนนเก็บ</button><small>ปุ่มนี้จะอยู่ด้านบนขณะเลื่อนกรอกคะแนน</small></div>
             <div id="scoreList" class="list"></div>
-            <button class="btn primary right" id="saveScoresBtn">บันทึกคะแนน</button>
           </div>
           <div id="noWork" class="empty">ยังไม่มีชิ้นงาน</div>
         </div>
@@ -265,13 +265,13 @@
           </div>
           <div class="notice">💡 คะแนนสอบวางเป็นคอลัมน์ได้ทีเดียว และถ้าคัดลอก 2 คอลัมน์ “กลางภาค + ปลายภาค” ให้วางที่ช่องกลางภาคของคนแรก ระบบจะเติมทั้ง 2 คอลัมน์ให้</div>
           <div class="notice grade-note">เกณฑ์: 0 = 0–49, 1 = 50–54, 1.5 = 55–59, 2 = 60–64, 2.5 = 65–69, 3 = 70–74, 3.5 = 75–79, 4 = 80–100 • เพื่อให้คะแนนเต็มรวมเป็น 100 ควรกำหนดคะแนนชิ้นงานรวม 60 คะแนน</div>
+          <div class="score-save-sticky"><button class="btn primary" id="saveExamScoresBtn">💾 บันทึกกลางภาค / ปลายภาค</button><small>บันทึกได้ทันที ไม่ต้องเลื่อนลงล่างสุด</small></div>
           <div class="table-wrap gradebook-wrap">
             <table class="gradebook">
               <thead><tr><th>เลขที่</th><th>รหัสนักเรียน</th><th>ชื่อ-นามสกุล</th><th>คะแนนชิ้นงาน</th><th>กลางภาค<br><small>/20</small></th><th>ปลายภาค<br><small>/20</small></th><th>รวม</th><th>เกรด</th></tr></thead>
               <tbody id="examScoreList"></tbody>
             </table>
           </div>
-          <button class="btn primary right" id="saveExamScoresBtn">บันทึกกลางภาค / ปลายภาค</button>
         </div>
       </section>
 

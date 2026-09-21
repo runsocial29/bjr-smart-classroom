@@ -129,7 +129,7 @@ input,textarea,select{border:1px solid var(--line);border-radius:11px;padding:10
   .attendance-matrix th:nth-child(3),.attendance-matrix td:nth-child(3){left:145px}
 }
 
-.daily-summary-card .daily-counts{grid-template-columns:repeat(5,1fr)}
+.daily-summary-card .daily-counts{grid-template-columns:repeat(6,1fr)}
 .daily-summary-card .total-leave{font-weight:800;background:#fff7ed}
 @media(max-width:700px){.daily-summary-card .daily-counts{grid-template-columns:repeat(2,1fr)}}
 
@@ -218,3 +218,12 @@ input,textarea,select{border:1px solid var(--line);border-radius:11px;padding:10
 .missing-assignment-list span{display:inline-flex;gap:4px;padding:6px 9px;border-radius:9px;background:#fff1f2;color:#9f1239;font-weight:750;border:1px solid #fecdd3}
 .missing-focus-row{background:#fff7ed!important;outline:2px solid #fb923c;outline-offset:-2px}
 @media(max-width:760px){.missing-work-detail-table{min-width:720px}.missing-work-summary>div{min-width:140px;flex:1}}
+
+/* V5.5.8: activity attendance + sticky score save */
+.status.activity.on{background:#e0f2fe;color:#0369a1}
+.attendance-matrix .att-mark.activity{color:#0369a1}
+.daily-summary-card .activity-count{font-weight:800;background:#e0f2fe}
+.score-save-sticky{position:sticky;top:8px;z-index:20;margin:12px 0;padding:10px 12px;border:1px solid #bfdbfe;border-radius:14px;background:rgba(239,246,255,.96);box-shadow:0 8px 24px #17324d18;display:flex;align-items:center;justify-content:flex-end;gap:10px;backdrop-filter:blur(6px)}
+.score-save-sticky small{color:#64748b;font-weight:700}
+.score-save-sticky .btn{min-height:44px}
+@media(max-width:700px){.score-save-sticky{top:4px;flex-direction:column;align-items:stretch}.score-save-sticky .btn{width:100%;font-size:16px}.score-save-sticky small{text-align:center}.status{min-height:42px}}
