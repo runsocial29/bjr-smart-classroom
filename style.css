@@ -242,3 +242,29 @@ input,textarea,select{border:1px solid var(--line);border-radius:11px;padding:10
 .missing-top5-item.rank-2{background:#fffaf0}.missing-top5-item.rank-3{background:#fffdf7}
 .missing-top5-empty{text-align:center;padding:24px 12px;border-radius:14px;background:#ecfdf5;color:#047857;font-weight:800}
 @media(max-width:700px){.missing-top5-item{grid-template-columns:34px minmax(0,1fr) auto;padding:9px}.missing-top5-item>strong{font-size:20px;min-width:62px}}
+
+
+/* V5.5.10: score-entry color guidance + rounded /60 used for /100 and grade */
+.gradebook .course60-col,.dashboard-score-table .course60-col{background:#ecfdf5 !important}
+.gradebook .mid20-col,.dashboard-score-table .mid20-col{background:#eff6ff !important}
+.gradebook .final20-col,.dashboard-score-table .final20-col{background:#fff7ed !important}
+.gradebook .total100-col,.dashboard-score-table .total100-col{background:#f5f3ff !important}
+.gradebook thead .course60-col,.dashboard-score-table thead .course60-col{color:#166534}
+.gradebook thead .mid20-col,.dashboard-score-table thead .mid20-col{color:#1d4ed8}
+.gradebook thead .final20-col,.dashboard-score-table thead .final20-col{color:#c2410c}
+.gradebook thead .total100-col,.dashboard-score-table thead .total100-col{color:#6d28d9}
+.gradebook .mid-input{background:#f8fbff;border-color:#93c5fd}
+.gradebook .final-input{background:#fffaf5;border-color:#fdba74}
+.gradebook .mid-input:focus{outline:3px solid #bfdbfe;border-color:#60a5fa}
+.gradebook .final-input:focus{outline:3px solid #fed7aa;border-color:#fb923c}
+
+/* Alternating assignment columns on Dashboard */
+.dashboard-score-table .assignment-alt-0{background:#f8fafc}
+.dashboard-score-table .assignment-alt-1{background:#f0fdfa}
+.dashboard-score-table thead .assignment-alt-0{background:#e2e8f0}
+.dashboard-score-table thead .assignment-alt-1{background:#ccfbf1}
+
+/* Alternating assignment tabs on score-entry page */
+#workTabs .work-tab-alt-0:not(.active){background:#f8fafc;border-color:#cbd5e1}
+#workTabs .work-tab-alt-1:not(.active){background:#f0fdfa;border-color:#99f6e4}
+#workTabs .tab.active{background:var(--p);color:white;border-color:var(--p)}

@@ -38,7 +38,8 @@ function gradeFromTotal(total){
   if(n>=80)return 4; if(n>=75)return 3.5; if(n>=70)return 3; if(n>=65)return 2.5;
   if(n>=60)return 2; if(n>=55)return 1.5; if(n>=50)return 1; return 0;
 }
-function studentGrandTotal(studentId){const e=examScores[studentId]||{};return courseworkTotal(studentId)+num(e.midterm)+num(e.final)}
+function courseworkRounded(studentId){return courseworkExcelValue(courseworkTotal(studentId))}
+function studentGrandTotal(studentId){const e=examScores[studentId]||{};return courseworkRounded(studentId)+num(e.midterm)+num(e.final)}
 
 function initClient(){
   if(!cfg?.url||!cfg?.key||!window.supabase?.createClient)return false;
@@ -285,17 +286,17 @@ function renderDashboard(){
 
   const dashHead=$("#dashScoreHead");
   if(dashHead){
-    const assignmentHeads=works.map(w=>`<th class="assignment-col"><span>${esc(w.name)}</span><small>/${w.max_score}</small></th>`).join("");
+    const assignmentHeads=works.map((w,i)=>`<th class="assignment-col assignment-alt-${i%2}"><span>${esc(w.name)}</span><small>/${w.max_score}</small></th>`).join("");
     dashHead.innerHTML=`<tr>
       <th>เลขที่</th>
       <th>รหัสนักเรียน</th>
       <th>ชื่อ-นามสกุล</th>
       <th>ไม่ได้ส่งงาน<small>(ชิ้น)</small></th>
       ${assignmentHeads}
-      <th>รวมชิ้นงาน<small>/60</small></th>
-      <th>กลางภาค<small>/20</small></th>
-      <th>ปลายภาค<small>/20</small></th>
-      <th>รวม<small>/100</small></th>
+      <th class="course60-col">รวมชิ้นงาน<small>/60</small></th>
+      <th class="mid20-col">กลางภาค<small>/20</small></th>
+      <th class="final20-col">ปลายภาค<small>/20</small></th>
+      <th class="total100-col">รวม<small>/100</small></th>
       <th>เกรด</th>
     </tr>`;
   }
@@ -307,11 +308,11 @@ function renderDashboard(){
       .sort((a,b)=>Number(a.student_no)-Number(b.student_no))
       .map(s=>{
         const e=examScores[s.id]||{};
-        const course=courseworkTotal(s.id);
+        const course=courseworkRounded(s.id);
         const total=studentGrandTotal(s.id);
-        const workCells=works.map(w=>{
+        const workCells=works.map((w,i)=>{
           const value=scores?.[w.id]?.[s.id];
-          return `<td class="assignment-score">${value??"—"}</td>`;
+          return `<td class="assignment-score assignment-alt-${i%2}">${value??"—"}</td>`;
         }).join("");
         return `<tr>
           <td>${s.student_no}</td>
@@ -321,10 +322,10 @@ function renderDashboard(){
             ?`<button type="button" class="missing-work-badge has-missing missing-work-open" data-missing-student="${s.id}" title="กดดูชิ้นงานที่ยังไม่ส่ง">${missingWorkCount(s.id)}</button>`
             :`<span class="missing-work-badge no-missing">0</span>`}</td>
           ${workCells}
-          <td><b>${course}</b></td>
-          <td>${e.midterm??"—"}</td>
-          <td>${e.final??"—"}</td>
-          <td><b>${total}</b></td>
+          <td class="course60-col"><b>${course}</b></td>
+          <td class="mid20-col">${e.midterm??"—"}</td>
+          <td class="final20-col">${e.final??"—"}</td>
+          <td class="total100-col"><b>${total}</b></td>
           <td><span class="grade-badge">${gradeFromTotal(total)}</span></td>
         </tr>`;
       }).join("")||`<tr><td colspan="${colspan}" class="empty">ยังไม่มีนักเรียน</td></tr>`;
@@ -653,7 +654,7 @@ async function exportAttendanceExcel(){
 
   const sessionPresentRow=["","","จำนวนมาเรียนรายคาบ","",...sessions.map(x=>records.filter(r=>r.day===x.day&&(Number(r.period)||1)===x.period&&r.status==="present").length),"","","","",""];
   const wsDaily=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.8"],
+    ["BJR Smart Classroom V5.5.10"],
     [`สรุปการเข้าเรียนรายคาบ: ${room}`],
     [`รายวิชา: ${subject}`],
     [`ช่วงข้อมูล: ${fullThaiDate(sessions[0].day)} ถึง ${fullThaiDate(sessions[sessions.length-1].day)}`],
@@ -674,7 +675,7 @@ async function exportAttendanceExcel(){
     return [s.student_no,s.student_code||"",s.name,count("present"),count("late"),count("leave"),count("absent"),count("activity"),count("leave")+count("absent"),vals.length,leaveNotes];
   });
   const wsPerson=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.8"],
+    ["BJR Smart Classroom V5.5.10"],
     [`สรุปสถิติการเข้าเรียนรายบุคคล: ${room}`],
     [`รายวิชา: ${subject}`],
     [],personHeaders,...personRows
@@ -693,7 +694,7 @@ async function exportAttendanceExcel(){
     return [i+1,fullThaiDate(x.day),x.period,count("present"),count("late"),count("leave"),count("absent"),count("activity"),count("leave")+count("absent"),rows.length,leaveDetails];
   });
   const wsDates=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.8"],
+    ["BJR Smart Classroom V5.5.10"],
     [`สรุปตามวันที่และคาบ: ${room}`],
     [`รายวิชา: ${subject}`],
     [],dateHeaders,...dateRows
@@ -783,7 +784,7 @@ function installExamBulkPaste(){
 }
 
 function renderScores(){
-  $("#workTabs").innerHTML=works.map(w=>`<button class="tab ${w.id===currentWorkId?"active":""}" data-work="${w.id}">${esc(w.name)}</button>`).join("");
+  $("#workTabs").innerHTML=works.map((w,i)=>`<button class="tab work-tab-alt-${i%2} ${w.id===currentWorkId?"active":""}" data-work="${w.id}">${esc(w.name)}</button>`).join("");
   $$("[data-work]").forEach(b=>b.onclick=()=>{currentWorkId=b.dataset.work;renderScores()});
   const w=works.find(x=>x.id===currentWorkId);$("#workEditor").classList.toggle("hidden",!w);$("#noWork").classList.toggle("hidden",!!w);if(!w)return;
   $("#workName").value=w.name;$("#workMax").value=w.max_score;
@@ -815,12 +816,12 @@ $("#saveScoresBtn").onclick=async()=>{
 function renderExamScores(){
   const body=$("#examScoreList"); if(!body)return;
   body.innerHTML=students.map(s=>{
-    const e=examScores[s.id]||{}, course=courseworkTotal(s.id), total=studentGrandTotal(s.id), grade=gradeFromTotal(total);
-    return `<tr><td>${s.student_no}</td><td>${esc(s.student_code||"—")}</td><td class="student-name ${missingWorkCount(s.id)>0?"student-name-missing":""}">${esc(s.name)}</td><td>${course}</td><td><input class="exam-input" data-mid="${s.id}" type="number" min="0" max="20" step="0.5" value="${e.midterm??""}" placeholder="0-20"></td><td><input class="exam-input" data-final="${s.id}" type="number" min="0" max="20" step="0.5" value="${e.final??""}" placeholder="0-20"></td><td><b data-grand="${s.id}">${total}</b></td><td><span class="grade-badge" data-grade="${s.id}">${grade}</span></td></tr>`;
+    const e=examScores[s.id]||{}, course=courseworkRounded(s.id), total=studentGrandTotal(s.id), grade=gradeFromTotal(total);
+    return `<tr><td>${s.student_no}</td><td>${esc(s.student_code||"—")}</td><td class="student-name ${missingWorkCount(s.id)>0?"student-name-missing":""}">${esc(s.name)}</td><td class="course60-col"><b>${course}</b></td><td class="mid20-col"><input class="exam-input mid-input" data-mid="${s.id}" type="number" min="0" max="20" step="0.5" value="${e.midterm??""}" placeholder="0-20"></td><td class="final20-col"><input class="exam-input final-input" data-final="${s.id}" type="number" min="0" max="20" step="0.5" value="${e.final??""}" placeholder="0-20"></td><td class="total100-col"><b data-grand="${s.id}">${total}</b></td><td><span class="grade-badge" data-grade="${s.id}">${grade}</span></td></tr>`;
   }).join("")||`<tr><td colspan="8">ยังไม่มีนักเรียน</td></tr>`;
   $$('[data-mid], [data-final]').forEach(i=>i.oninput=()=>{
     const id=i.dataset.mid||i.dataset.final, mid=num($(`[data-mid="${id}"]`)?.value), fin=num($(`[data-final="${id}"]`)?.value);
-    const total=courseworkTotal(id)+Math.min(20,Math.max(0,mid))+Math.min(20,Math.max(0,fin));
+    const total=courseworkRounded(id)+Math.min(20,Math.max(0,mid))+Math.min(20,Math.max(0,fin));
     const g=$(`[data-grand="${id}"]`), gr=$(`[data-grade="${id}"]`); if(g)g.textContent=total; if(gr)gr.textContent=gradeFromTotal(total);
   });
   ["mid","final"].forEach(kind=>{
@@ -862,14 +863,14 @@ function exportRoomExcel(){
   const room=rooms.find(r=>r.id===currentRoomId)?.name||"ห้องเรียน";
   const headers=["เลขที่","รหัสนักเรียน","ชื่อ-นามสกุล",...works.map(w=>`${w.name} (${w.max_score})`),"คะแนนชิ้นงานรวม","ไม่ได้ส่งงาน (ชิ้น)","กลางภาค (20)","ปลายภาค (20)","คะแนนรวม","เกรด"];
   const rows=students.map(s=>{
-    const e=examScores[s.id]||{}, course=courseworkTotal(s.id), courseExcel=courseworkExcelValue(course), total=studentGrandTotal(s.id);
+    const e=examScores[s.id]||{}, course=courseworkTotal(s.id), courseExcel=courseworkExcelValue(course), total=courseExcel+num(e.midterm)+num(e.final);
     return [s.student_no,s.student_code||"",s.name,...works.map(w=>scores[w.id]?.[s.id]??""),courseExcel,missingWorkCount(s.id),e.midterm??"",e.final??"",total,gradeFromTotal(total)];
   });
   const ws=XLSX.utils.aoa_to_sheet([
-    ["BJR Smart Classroom V5.5.8"],
+    ["BJR Smart Classroom V5.5.10"],
     [`สรุปคะแนนรายห้อง: ${room}`],[`รายวิชา: ${rooms.find(r=>r.id===currentRoomId)?.subject_name||"ยังไม่ระบุรายวิชา"}`],
     ["เกณฑ์เกรด: 0=0-49 | 1=50-54 | 1.5=55-59 | 2=60-64 | 2.5=65-69 | 3=70-74 | 3.5=75-79 | 4=80-100"],
-    ["หมายเหตุ: คะแนนชิ้นงานรวม /60 ใน Excel หากมีเศษตั้งแต่ .5 ขึ้นไป ระบบปัดขึ้นเป็นจำนวนเต็ม โดยไม่แก้คะแนนดิบในระบบ"],
+    ["หมายเหตุ: คะแนนชิ้นงานรวม /60 หากมีเศษตั้งแต่ .5 ขึ้นไป ระบบปัดขึ้นเป็นจำนวนเต็ม และใช้ค่าที่ปัดแล้วคำนวณคะแนนรวม /100 และเกรด โดยไม่แก้คะแนนดิบรายชิ้นงาน"],
     [],headers,...rows
   ]);
   ws['!cols']=headers.map((h,i)=>({wch:i===1?28:Math.max(10,Math.min(22,String(h).length+2))}));
