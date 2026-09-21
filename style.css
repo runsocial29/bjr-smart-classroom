@@ -227,3 +227,18 @@ input,textarea,select{border:1px solid var(--line);border-radius:11px;padding:10
 .score-save-sticky small{color:#64748b;font-weight:700}
 .score-save-sticky .btn{min-height:44px}
 @media(max-width:700px){.score-save-sticky{top:4px;flex-direction:column;align-items:stretch}.score-save-sticky .btn{width:100%;font-size:16px}.score-save-sticky small{text-align:center}.status{min-height:42px}}
+
+
+/* V5.5.9: dashboard top 5 missing assignments */
+.missing-top5-card{background:linear-gradient(145deg,#fff,#fff7ed);border-color:#fed7aa}
+.missing-top5-card h3{margin-top:0;color:#9a3412}
+#dashMissingTop5{display:grid;gap:9px}
+.missing-top5-item{width:100%;border:1px solid #fed7aa;background:#fff;border-radius:14px;padding:10px 12px;display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;text-align:left;color:var(--text);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+.missing-top5-item:hover{transform:translateY(-2px);box-shadow:0 8px 20px #9a34121a;border-color:#fb923c}
+.missing-top5-rank{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#ffedd5;color:#9a3412;font-weight:900;font-size:16px}
+.missing-top5-name{min-width:0;display:grid;gap:2px}.missing-top5-name b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.missing-top5-name small{font-size:11px;color:#94a3b8}
+.missing-top5-item>strong{font-size:24px;color:#dc2626;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:6px 10px;min-width:72px;text-align:center}.missing-top5-item>strong small{font-size:11px;color:#9f1239}
+.missing-top5-item.rank-1{background:#fff7ed;border-color:#fb923c}.missing-top5-item.rank-1 .missing-top5-rank{background:#f97316;color:#fff}.missing-top5-item.rank-1>strong{background:#dc2626;color:#fff;border-color:#dc2626}.missing-top5-item.rank-1>strong small{color:#fff}
+.missing-top5-item.rank-2{background:#fffaf0}.missing-top5-item.rank-3{background:#fffdf7}
+.missing-top5-empty{text-align:center;padding:24px 12px;border-radius:14px;background:#ecfdf5;color:#047857;font-weight:800}
+@media(max-width:700px){.missing-top5-item{grid-template-columns:34px minmax(0,1fr) auto;padding:9px}.missing-top5-item>strong{font-size:20px;min-width:62px}}

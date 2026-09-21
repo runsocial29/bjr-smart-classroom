@@ -251,10 +251,16 @@ function renderDashboard(){
   $("#stAvg").textContent=totals.length?(totals.reduce((a,b)=>a+b,0)/totals.length).toFixed(1):"0";
   const avgMax=$("#stAvgMax"); if(avgMax)avgMax.textContent=`/ ${roomMax}`;
   const c={present:0,late:0,leave:0,absent:0,activity:0};students.forEach(s=>c[attendance[s.id]]!=null&&c[attendance[s.id]]++);
-  $("#dashAttendance").innerHTML=[["มา",c.present],["สาย",c.late],["ลา",c.leave],["ขาด",c.absent],["กิจกรรม",c.activity]].map(([n,v])=>`<div class="barrow"><span>${n}</span><div class="bar"><i style="width:${students.length?v/students.length*100:0}%"></i></div><b>${v}</b></div>`).join("");
-  const dateText=new Intl.DateTimeFormat("th-TH",{day:"numeric",month:"short",year:"numeric"}).format(new Date(attendanceDate+"T12:00:00"));
   const presentLabel=$("#stPresentLabel"); if(presentLabel)presentLabel.textContent=attendancePeriod?`มาเรียนคาบ ${attendancePeriod}`:"ยังไม่ได้เลือกคาบ";
-  const attTitle=$("#dashAttendanceTitle"); if(attTitle)attTitle.textContent=attendancePeriod?`สถานะการเข้าเรียน • ${dateText} • คาบ ${attendancePeriod}`:`สถานะการเข้าเรียน • ${dateText} • กรุณาเลือกคาบ`;
+  const missingTop5=[...students]
+    .map(s=>({...s,missingCount:missingWorkCount(s.id)}))
+    .filter(s=>s.missingCount>0)
+    .sort((a,b)=>b.missingCount-a.missingCount||Number(a.student_no)-Number(b.student_no))
+    .slice(0,5);
+  const missingTop5Box=$("#dashMissingTop5");
+  if(missingTop5Box){
+    missingTop5Box.innerHTML=missingTop5.map((s,i)=>`<button type="button" class="missing-top5-item rank-${i+1}" data-missing-student="${s.id}" title="กดดูชิ้นงานที่ยังไม่ส่ง"><span class="missing-top5-rank">${i+1}</span><span class="missing-top5-name"><b>${s.student_no}. ${esc(s.name)}</b><small>กดดูรายละเอียดงานค้าง</small></span><strong>${s.missingCount}<small> ชิ้น</small></strong></button>`).join("")||`<div class="missing-top5-empty">🎉 นักเรียนส่งงานครบทุกชิ้นแล้ว</div>`;
+  }
   $("#dashStars").innerHTML=[...students]
     .map(s=>({...s,total:studentGrandTotal(s.id)}))
     .sort((a,b)=>b.total-a.total||Number(a.student_no)-Number(b.student_no))
