@@ -8,6 +8,39 @@ const DEFAULT_SUPABASE_CONFIG=Object.freeze({
 });
 let cfg={...DEFAULT_SUPABASE_CONFIG};
 let sb=null,user=null,rooms=[],currentRoomId=null,currentSubject="",students=[],works=[],attendance={},attendanceNotes={},attendanceHistory=[],behavior={},scores={},examScores={},currentWorkId=null,randomHistory=[],attendanceDate="",attendancePeriod=null;
+const TERM_KEY="bjr_smart_classroom_term_v560";
+const YEAR_OPTIONS_KEY="bjr_smart_classroom_year_options_v560";
+let academicYearOptions=(()=>{try{const v=JSON.parse(localStorage.getItem(YEAR_OPTIONS_KEY)||"null");return Array.isArray(v)&&v.length?[...new Set(v.map(Number).filter(n=>Number.isInteger(n)&&n>=2500))].sort((a,b)=>a-b):[2569,2570,2571,2572,2573,2574]}catch{return [2569,2570,2571,2572,2573,2574]}})();
+const savedTerm=(()=>{try{return JSON.parse(localStorage.getItem(TERM_KEY)||"{}")}catch{return {}}})();
+let academicYear=Number(savedTerm.year)||2569, semester=Number(savedTerm.semester)||2;
+function termLabel(){return `ปีการศึกษา ${academicYear} • ภาคเรียนที่ ${semester}`}
+function termFilters(q){return q.eq("academic_year",academicYear).eq("semester",semester)}
+function persistTerm(){localStorage.setItem(TERM_KEY,JSON.stringify({year:academicYear,semester}))}
+function initTermControls(){
+  const y=$("#academicYearSelect"), sem=$("#semesterSelect");
+  if(!y||!sem)return;
+  if(!academicYearOptions.includes(academicYear)){academicYearOptions.push(academicYear);academicYearOptions.sort((a,b)=>a-b);}
+  y.innerHTML=academicYearOptions.map(n=>`<option value="${n}">ปีการศึกษา ${n}</option>`).join("");
+  y.value=String(academicYear);sem.value=String(semester);
+  y.onchange=()=>{if(hasUnsavedScores()&&!confirmDiscardUnsavedScores()){y.value=String(academicYear);return;}academicYear=Number(y.value);persistTerm();clearWorkScoresDirty();clearExamScoresDirty();loadRoomData();};
+  sem.onchange=()=>{if(hasUnsavedScores()&&!confirmDiscardUnsavedScores()){sem.value=String(semester);return;}semester=Number(sem.value);persistTerm();clearWorkScoresDirty();clearExamScoresDirty();loadRoomData();};
+  $("#addAcademicYearBtn").onclick=()=>{
+    const raw=prompt("กรอกปีการศึกษา พ.ศ. ที่ต้องการเพิ่ม เช่น 2575",String(Math.max(...academicYearOptions)+1));
+    if(raw===null)return;
+    const next=Number(raw.trim());
+    if(!Number.isInteger(next)||next<2500||next>3000)return alert("กรุณากรอกปีการศึกษาเป็นตัวเลข พ.ศ. เช่น 2575");
+    if(!academicYearOptions.includes(next))academicYearOptions.push(next);
+    academicYearOptions.sort((a,b)=>a-b);localStorage.setItem(YEAR_OPTIONS_KEY,JSON.stringify(academicYearOptions));
+    y.innerHTML=academicYearOptions.map(n=>`<option value="${n}">ปีการศึกษา ${n}</option>`).join("");
+    if(hasUnsavedScores()&&!confirmDiscardUnsavedScores()){y.value=String(academicYear);return;}
+    academicYear=next;y.value=String(next);persistTerm();clearWorkScoresDirty();clearExamScoresDirty();loadRoomData();toast(`เพิ่มปีการศึกษา ${next} แล้ว`);
+  };
+  $("#startTermBtn").onclick=async()=>{
+    if(hasUnsavedScores()&&!confirmDiscardUnsavedScores())return;
+    if(!confirm(`เปิดพื้นที่ข้อมูล ${termLabel()} ใช่หรือไม่?\n\nข้อมูลเดิมจะไม่ถูกลบ และข้อมูลคะแนน/งาน/การเข้าเรียนจะถูกแยกตามภาคเรียน`))return;
+    clearWorkScoresDirty();clearExamScoresDirty();persistTerm();await loadRoomData();toast(`เปิด ${termLabel()} แล้ว`);
+  };
+}
 
 let unsavedWorkScores=false, unsavedExamScores=false;
 function hasUnsavedScores(){return unsavedWorkScores||unsavedExamScores}
@@ -75,6 +108,7 @@ function portalOwner(){return new URLSearchParams(location.search).get("owner")|
 
 async function boot(){
   if(!attendanceDate)attendanceDate=today();
+  initTermControls();
   $("#todayText").textContent=new Intl.DateTimeFormat("th-TH",{dateStyle:"full"}).format(new Date());
   setInterval(()=>$("#clock").textContent=new Date().toLocaleTimeString("th-TH"),1000);
   if(!initClient()){
@@ -146,7 +180,8 @@ $("#studentCodeLoginBtn").onclick=async()=>{
   if(!code){msg.textContent="กรุณากรอกรหัสนักเรียน";return;}
   const btn=$("#studentCodeLoginBtn"); btn.disabled=true; btn.textContent="กำลังค้นหา...";
   try{
-    const {data,error}=await sb.rpc("student_portal_by_code",{p_owner_id:owner,p_student_code:code});
+    const portalParams=new URLSearchParams(location.search);
+    const {data,error}=await sb.rpc("student_portal_by_code",{p_owner_id:owner,p_student_code:code,p_academic_year:Number(portalParams.get("year"))||2569,p_semester:Number(portalParams.get("semester"))||2});
     if(error)throw error;
     const x=Array.isArray(data)?data[0]:data;
     if(!x||!x.student)throw new Error("ไม่พบรหัสนักเรียนนี้");
@@ -253,12 +288,12 @@ $("#deleteRoomBtn").onclick=async()=>{
 async function loadRoomData(){
   const [s,w,a,ah,b,sc,ex]=await Promise.all([
     sb.from("students").select("*").eq("room_id",currentRoomId).order("student_no"),
-    sb.from("assignments").select("*").eq("room_id",currentRoomId).order("created_at"),
-    attendancePeriod ? sb.from("attendance").select("*").eq("room_id",currentRoomId).eq("day",attendanceDate).eq("period",attendancePeriod) : Promise.resolve({data:[],error:null}),
-    sb.from("attendance").select("student_id,day,period,status,note").eq("room_id",currentRoomId).order("day").order("period"),
+    termFilters(sb.from("assignments").select("*").eq("room_id",currentRoomId)).order("created_at"),
+    attendancePeriod ? termFilters(sb.from("attendance").select("*").eq("room_id",currentRoomId).eq("day",attendanceDate).eq("period",attendancePeriod)) : Promise.resolve({data:[],error:null}),
+    termFilters(sb.from("attendance").select("student_id,day,period,status,note").eq("room_id",currentRoomId)).order("day").order("period"),
     sb.from("behavior").select("*").eq("room_id",currentRoomId),
-    sb.from("scores").select("*").eq("room_id",currentRoomId),
-    sb.from("exam_scores").select("*").eq("room_id",currentRoomId)
+    termFilters(sb.from("scores").select("*").eq("room_id",currentRoomId)),
+    termFilters(sb.from("exam_scores").select("*").eq("room_id",currentRoomId))
   ]);
   for(const x of [s,w,a,ah,b,sc,ex])if(x.error)return toast(x.error.message);
   students=s.data||[];works=w.data||[];attendance=Object.fromEntries((a.data||[]).map(x=>[x.student_id,x.status]));attendanceNotes=Object.fromEntries((a.data||[]).map(x=>[x.student_id,x.note||""]));
@@ -272,7 +307,7 @@ async function loadRoomData(){
 function renderAll(){renderDashboard();renderMissingWorkDetail();renderAttendance();renderAttendanceSummary();renderRandom();renderScores();renderExamScores();renderBehavior();renderStudents();renderLinks()}
 
 function renderDashboard(){
-  const r=rooms.find(x=>x.id===currentRoomId);$("#heroRoom").textContent=`${r?.name||""}${r?.subject_name?` • ${r.subject_name}`:""}`;
+  const r=rooms.find(x=>x.id===currentRoomId);$("#heroRoom").textContent=`${r?.name||""}${r?.subject_name?` • ${r.subject_name}`:""} • ${termLabel()}`;
   $("#stStudents").textContent=students.length;$("#stPresent").textContent=Object.values(attendance).filter(x=>x==="present").length;$("#stWorks").textContent=works.length;
   const missingStudents=students.filter(s=>missingWorkCount(s.id)>0).length;
   const missingStat=$("#stMissingStudents"); if(missingStat)missingStat.textContent=missingStudents;
@@ -385,7 +420,7 @@ function attendanceDateText(){
 async function loadAttendanceForDate(day){
   attendanceDate=day||today();
   if(!attendancePeriod){attendance={};attendanceNotes={};renderAttendance();renderDashboard();return;}
-  const {data,error}=await sb.from("attendance").select("*").eq("room_id",currentRoomId).eq("day",attendanceDate).eq("period",attendancePeriod);
+  const {data,error}=await termFilters(sb.from("attendance").select("*").eq("room_id",currentRoomId).eq("day",attendanceDate).eq("period",attendancePeriod));
   if(error)return toast(error.message);
   attendance=Object.fromEntries((data||[]).map(x=>[x.student_id,x.status]));
   attendanceNotes=Object.fromEntries((data||[]).map(x=>[x.student_id,x.note||""]));
@@ -422,7 +457,7 @@ function renderAttendance(){
   $$("[data-att]").forEach(b=>b.onclick=async()=>{
     const student_id=b.dataset.att,status=b.dataset.status;
     const note=status==="leave"?(attendanceNotes[student_id]||""):"";
-    const {error}=await sb.from("attendance").upsert({owner_id:user.id,room_id:currentRoomId,student_id,day:attendanceDate,period:attendancePeriod,status,note},{onConflict:"student_id,day,period"});
+    const {error}=await sb.from("attendance").upsert({owner_id:user.id,room_id:currentRoomId,student_id,day:attendanceDate,period:attendancePeriod,status,note,academic_year:academicYear,semester},{onConflict:"student_id,day,period,academic_year,semester"});
     if(error)return toast(error.message);
     attendance[student_id]=status;
     attendanceNotes[student_id]=note;
@@ -438,8 +473,8 @@ function renderAttendance(){
       const student_id=inp.dataset.leaveNote;
       const note=inp.value.trim();
       const {error}=await sb.from("attendance").upsert({
-        owner_id:user.id,room_id:currentRoomId,student_id,day:attendanceDate,period:attendancePeriod,status:"leave",note
-      },{onConflict:"student_id,day,period"});
+        owner_id:user.id,room_id:currentRoomId,student_id,day:attendanceDate,period:attendancePeriod,status:"leave",note,academic_year:academicYear,semester
+      },{onConflict:"student_id,day,period,academic_year,semester"});
       if(error)return toast(error.message);
       attendance[student_id]="leave";
       attendanceNotes[student_id]=note;
@@ -461,7 +496,7 @@ function attendanceMark(status){
   return ({present:"/",late:"ส",leave:"ล",absent:"ข",activity:"ก"})[status]||"";
 }
 async function refreshAttendanceHistory(){
-  const {data,error}=await sb.from("attendance").select("student_id,day,period,status,note").eq("room_id",currentRoomId).order("day").order("period");
+  const {data,error}=await termFilters(sb.from("attendance").select("student_id,day,period,status,note").eq("room_id",currentRoomId)).order("day").order("period");
   if(error)return toast(error.message);
   attendanceHistory=data||[];
   renderAttendanceSummary();
@@ -620,12 +655,12 @@ $("#saveAttendanceBtn").onclick=async()=>{
   if(!attendancePeriod)return alert("⚠️ กรุณาเลือกคาบเรียนก่อนบันทึกข้อมูล");
   const rows=students
     .filter(s=>attendance[s.id])
-    .map(s=>({owner_id:user.id,room_id:currentRoomId,student_id:s.id,day:attendanceDate,period:attendancePeriod,status:attendance[s.id],note:attendance[s.id]==="leave"?(attendanceNotes[s.id]||""):""}));
+    .map(s=>({owner_id:user.id,room_id:currentRoomId,student_id:s.id,day:attendanceDate,period:attendancePeriod,status:attendance[s.id],note:attendance[s.id]==="leave"?(attendanceNotes[s.id]||""):"",academic_year:academicYear,semester}));
   if(!rows.length){
     alert("⚠️ ยังไม่มีข้อมูลการเช็กชื่อสำหรับบันทึก");
     return;
   }
-  const {error}=await sb.from("attendance").upsert(rows,{onConflict:"student_id,day,period"});
+  const {error}=await sb.from("attendance").upsert(rows,{onConflict:"student_id,day,period,academic_year,semester"});
   if(error){
     alert("❌ บันทึกข้อมูลไม่สำเร็จ\n"+error.message);
     return;
@@ -637,8 +672,8 @@ $("#saveAttendanceBtn").onclick=async()=>{
 $("#allPresentBtn").onclick=async()=>{
   if(!attendancePeriod)return alert("⚠️ กรุณาเลือกคาบเรียนก่อนกำหนดมาเรียนทั้งหมด");
   if(!students.length)return;
-  const rows=students.map(s=>({owner_id:user.id,room_id:currentRoomId,student_id:s.id,day:attendanceDate,period:attendancePeriod,status:"present",note:""}));
-  const {error}=await sb.from("attendance").upsert(rows,{onConflict:"student_id,day,period"});
+  const rows=students.map(s=>({owner_id:user.id,room_id:currentRoomId,student_id:s.id,day:attendanceDate,period:attendancePeriod,status:"present",note:"",academic_year:academicYear,semester}));
+  const {error}=await sb.from("attendance").upsert(rows,{onConflict:"student_id,day,period,academic_year,semester"});
   if(error)return toast(error.message);
   students.forEach(s=>{attendance[s.id]="present";attendanceNotes[s.id]="";});
   await refreshAttendanceHistory();
@@ -649,7 +684,7 @@ async function exportAttendanceExcel(){
   if(!window.XLSX)return toast("โหลดระบบ Excel ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ต");
   if(!students.length)return toast("ยังไม่มีนักเรียน");
 
-  const {data,error}=await sb.from("attendance").select("student_id,day,period,status,note").eq("room_id",currentRoomId).order("day").order("period");
+  const {data,error}=await termFilters(sb.from("attendance").select("student_id,day,period,status,note").eq("room_id",currentRoomId)).order("day").order("period");
   if(error)return toast(error.message);
   const records=data||[];
   if(!records.length)return toast("ยังไม่มีข้อมูลการเข้าเรียนสำหรับห้องนี้");
@@ -838,13 +873,13 @@ function renderScores(){
 }
 $("#addWorkBtn").onclick=()=>openModal("เพิ่มชิ้นงาน",`<label>ชื่องาน<input id="mWork" placeholder="เช่น ใบงานที่ 1"></label><label>คะแนนเต็ม<input id="mMax" type="number" min="1" value="10"></label>`,async()=>{
   const name=$("#mWork").value.trim(),max_score=Number($("#mMax").value);if(!name||max_score<1)return toast("กรอกข้อมูลให้ครบ");
-  const {data,error}=await sb.from("assignments").insert({owner_id:user.id,room_id:currentRoomId,name,max_score}).select().single();if(error)return toast(error.message);closeModal();currentWorkId=data.id;await loadRoomData();toast("เพิ่มชิ้นงานแล้ว");
+  const {data,error}=await sb.from("assignments").insert({owner_id:user.id,room_id:currentRoomId,name,max_score,academic_year:academicYear,semester}).select().single();if(error)return toast(error.message);closeModal();currentWorkId=data.id;await loadRoomData();toast("เพิ่มชิ้นงานแล้ว");
 });
 $("#saveWorkBtn").onclick=async()=>{const w=works.find(x=>x.id===currentWorkId),name=$("#workName").value.trim(),max_score=Number($("#workMax").value);if(!w||!name||max_score<1)return;const {error}=await sb.from("assignments").update({name,max_score}).eq("id",w.id);if(error)return toast(error.message);await loadRoomData();toast("บันทึกชื่องานแล้ว")};
 $("#deleteWorkBtn").onclick=async()=>{if(!currentWorkId||!confirm("ลบชิ้นงานและคะแนนทั้งหมดหรือไม่?"))return;const {error}=await sb.from("assignments").delete().eq("id",currentWorkId);if(error)return toast(error.message);currentWorkId=null;await loadRoomData();toast("ลบงานแล้ว")};
 $("#saveScoresBtn").onclick=async()=>{
   const w=works.find(x=>x.id===currentWorkId);if(!w)return;
-  const rows=[];$$("[data-score]").forEach(i=>{if(i.value!=="")rows.push({owner_id:user.id,room_id:currentRoomId,assignment_id:w.id,student_id:i.dataset.score,score:Math.max(0,Math.min(Number(w.max_score),Number(i.value)))})});
+  const rows=[];$$("[data-score]").forEach(i=>{if(i.value!=="")rows.push({owner_id:user.id,room_id:currentRoomId,assignment_id:w.id,student_id:i.dataset.score,score:Math.max(0,Math.min(Number(w.max_score),Number(i.value))),academic_year:academicYear,semester})});
   if(rows.length){const {error}=await sb.from("scores").upsert(rows,{onConflict:"assignment_id,student_id"});if(error)return toast(error.message)}
   clearWorkScoresDirty();
   await loadRoomData();toast("บันทึกคะแนนแล้ว");savePopup("บันทึกคะแนนเก็บเรียบร้อยแล้ว");
@@ -883,9 +918,9 @@ $("#saveExamScoresBtn").onclick=async()=>{
     const mi=$(`[data-mid="${s.id}"]`), fi=$(`[data-final="${s.id}"]`);
     const midterm=mi?.value===""?null:Math.min(20,Math.max(0,Number(mi.value)));
     const final=fi?.value===""?null:Math.min(20,Math.max(0,Number(fi.value)));
-    return {owner_id:user.id,room_id:currentRoomId,student_id:s.id,midterm,final};
+    return {owner_id:user.id,room_id:currentRoomId,student_id:s.id,midterm,final,academic_year:academicYear,semester};
   });
-  const {error}=await sb.from("exam_scores").upsert(rows,{onConflict:"student_id"});
+  const {error}=await sb.from("exam_scores").upsert(rows,{onConflict:"student_id,academic_year,semester"});
   if(error)return toast(error.message);
   clearExamScoresDirty();
   await loadRoomData();toast("บันทึกคะแนนกลางภาคและปลายภาคแล้ว");savePopup("บันทึกคะแนนกลางภาคและคะแนนปลายภาคเรียบร้อยแล้ว");
@@ -908,7 +943,7 @@ function exportRoomExcel(){
   });
   const ws=XLSX.utils.aoa_to_sheet([
     ["BJR Smart Classroom V5.5.11"],
-    [`สรุปคะแนนรายห้อง: ${room}`],[`รายวิชา: ${rooms.find(r=>r.id===currentRoomId)?.subject_name||"ยังไม่ระบุรายวิชา"}`],
+    [`สรุปคะแนนรายห้อง: ${room}`],[`รายวิชา: ${rooms.find(r=>r.id===currentRoomId)?.subject_name||"ยังไม่ระบุรายวิชา"}`],[termLabel()],
     ["เกณฑ์เกรด: 0=0-49 | 1=50-54 | 1.5=55-59 | 2=60-64 | 2.5=65-69 | 3=70-74 | 3.5=75-79 | 4=80-100"],
     ["หมายเหตุ: คะแนนชิ้นงานรวม /60 หากมีเศษตั้งแต่ .5 ขึ้นไป ระบบปัดขึ้นเป็นจำนวนเต็ม และใช้ค่าที่ปัดแล้วคำนวณคะแนนรวม /100 และเกรด โดยไม่แก้คะแนนดิบรายชิ้นงาน"],
     [],headers,...rows
@@ -1015,7 +1050,8 @@ function renderStudentPortalData(x){
 async function loadStudentPortal(token){
   $("#spError").textContent="";
   try{
-    const {data,error}=await sb.rpc("student_portal",{p_token:token});
+    const portalParams=new URLSearchParams(location.search);
+    const {data,error}=await sb.rpc("student_portal",{p_token:token,p_academic_year:Number(portalParams.get("year"))||2569,p_semester:Number(portalParams.get("semester"))||2});
     if(error)throw error;
     const x=Array.isArray(data)?data[0]:data;
     if(!x||!x.student){throw new Error("ไม่พบข้อมูลจากลิงก์นี้")}

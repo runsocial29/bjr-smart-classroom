@@ -80,7 +80,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="logo small school-brand-logo"><img src="school-logo-real.jpg" alt="ตราโรงเรียน"></div>
-        <div class="brand-text"><b>Smart Classroom</b><small>V5.5.8 Online</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
+        <div class="brand-text"><b>Smart Classroom</b><small>V5.6.0 Academic Terms</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
       </div>
       <nav>
         <button class="nav active" data-view="dashboard">🏠 Dashboard</button>
@@ -100,6 +100,10 @@
         <div class="roombar">
           <div class="top-select"><small>รายวิชา</small><select id="subjectSelect"></select></div>
           <div class="top-select"><small>ห้องเรียน</small><select id="roomSelect"></select></div>
+          <div class="top-select term-select"><small>ปีการศึกษา</small><select id="academicYearSelect"></select></div>
+          <button class="btn ghost" id="addAcademicYearBtn" type="button" title="เพิ่มปีการศึกษา">＋ ปี</button>
+          <div class="top-select term-select"><small>ภาคเรียน</small><select id="semesterSelect"><option value="1">ภาคเรียนที่ 1</option><option value="2">ภาคเรียนที่ 2</option></select></div>
+          <button class="btn primary" id="startTermBtn" type="button">เริ่ม/เปิดภาคเรียน</button>
           <button class="btn primary" id="addRoomBtn">+ เพิ่มห้อง</button>
           <button class="btn ghost" id="renameRoomBtn">แก้ไขห้อง/วิชา</button>
           <button class="btn danger" id="deleteRoomBtn">ลบห้อง</button>
@@ -319,6 +323,6 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="app.js?v=5.5.6-auto-connect"></script>
+  <script src="app.js?v=5.6.0-academic-terms"></script>
 </body>
 </html>

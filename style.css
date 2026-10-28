@@ -268,3 +268,8 @@ input,textarea,select{border:1px solid var(--line);border-radius:11px;padding:10
 #workTabs .work-tab-alt-0:not(.active){background:#f8fafc;border-color:#cbd5e1}
 #workTabs .work-tab-alt-1:not(.active){background:#f0fdfa;border-color:#99f6e4}
 #workTabs .tab.active{background:var(--p);color:white;border-color:var(--p)}
+
+/* V5.6.0 academic year/semester controls */
+.term-select{min-width:125px}
+#startTermBtn{white-space:nowrap}
+@media(max-width:900px){.term-select{min-width:110px}}
