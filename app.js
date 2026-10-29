@@ -106,6 +106,29 @@ function studentToken(){return new URLSearchParams(location.search).get("student
 function isStudentCodePortal(){return new URLSearchParams(location.search).get("portal")==="1";}
 function portalOwner(){return new URLSearchParams(location.search).get("owner")||"";}
 
+const initialStudentParams=new URLSearchParams(location.search);
+let studentViewYear=Number(initialStudentParams.get("year"))||2569;
+let studentViewSemester=Number(initialStudentParams.get("semester"))||2;
+let studentLookup=null;
+let studentPortalBusy=false;
+function initStudentTermSelectors(){
+  const yearIds=["studentLoginYearSelect","studentYearSelect"];
+  yearIds.forEach(id=>{const el=$("#"+id);if(!el)return;el.innerHTML=[2569,2570,2571,2572,2573,2574].map(y=>`<option value="${y}">${y}</option>`).join("");el.value=String(studentViewYear);});
+  const semesterIds=["studentLoginSemesterSelect","studentSemesterSelect"];
+  semesterIds.forEach(id=>{const el=$("#"+id);if(el)el.value=String(studentViewSemester);});
+  ["studentLoginYearSelect","studentYearSelect"].forEach(id=>{const el=$("#"+id);if(el)el.onchange=()=>{studentViewYear=Number(el.value)||2569;syncStudentTermSelectors();if(!$("#studentPage").classList.contains("hidden"))refreshStudentScores();};});
+  ["studentLoginSemesterSelect","studentSemesterSelect"].forEach(id=>{const el=$("#"+id);if(el)el.onchange=()=>{studentViewSemester=Number(el.value)||2;syncStudentTermSelectors();if(!$("#studentPage").classList.contains("hidden"))refreshStudentScores();};});
+}
+function syncStudentTermSelectors(){
+  ["studentLoginYearSelect","studentYearSelect"].forEach(id=>{const el=$("#"+id);if(el)el.value=String(studentViewYear);});
+  ["studentLoginSemesterSelect","studentSemesterSelect"].forEach(id=>{const el=$("#"+id);if(el)el.value=String(studentViewSemester);});
+}
+async function refreshStudentScores(){
+  if(studentPortalBusy)return;
+  if(studentToken()){await loadStudentPortal(studentToken(),studentViewYear,studentViewSemester);return;}
+  if(studentLookup){await loadStudentByCode(studentLookup.code,studentLookup.owner,studentViewYear,studentViewSemester);}
+}
+
 async function boot(){
   if(!attendanceDate)attendanceDate=today();
   initTermControls();
@@ -117,6 +140,7 @@ async function boot(){
     if(note)note.textContent="เชื่อมต่อระบบไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่";
     return;
   }
+  initStudentTermSelectors();
   if(studentToken()){showOnly("studentPage");await loadStudentPortal(studentToken());return;}
   if(isStudentCodePortal()){showOnly("studentLoginPage");return;}
   const {data:{session}}=await sb.auth.getSession();
@@ -173,21 +197,37 @@ $("#signUpBtn").onclick=async()=>{
 };
 $("#logoutBtn").onclick=async()=>{await sb.auth.signOut();location.reload()};
 
+async function loadStudentByCode(code,owner,year=studentViewYear,term=studentViewSemester){
+  const msg=$("#studentCodeLoginMsg");
+  if(studentPortalBusy)return;
+  studentPortalBusy=true;
+  const btn=$("#studentCodeLoginBtn");
+  if(btn){btn.disabled=true;btn.textContent="กำลังค้นหา...";}
+  $("#spError").textContent="";
+  try{
+    const {data,error}=await sb.rpc("student_portal_by_code",{p_owner_id:owner,p_student_code:code,p_academic_year:year,p_semester:term});
+    if(error)throw error;
+    const x=Array.isArray(data)?data[0]:data;
+    if(!x||!x.student)throw new Error("ไม่พบรหัสนักเรียนนี้ในปีการศึกษาและภาคเรียนที่เลือก");
+    studentLookup={code,owner};studentViewYear=year;studentViewSemester=term;syncStudentTermSelectors();
+    showOnly("studentPage");renderStudentPortalData(x);
+    const notice=$("#studentTermNotice");if(notice)notice.textContent=`กำลังแสดงคะแนนปีการศึกษา ${year} ภาคเรียนที่ ${term}`;
+  }catch(e){
+    const message=e?.message||String(e);
+    if(!$("#studentPage").classList.contains("hidden"))$("#spError").textContent=message;
+    else if(msg)msg.textContent=message;
+  }
+  finally{studentPortalBusy=false;if(btn){btn.disabled=false;btn.textContent="ดูคะแนนของฉัน";}}
+}
 $("#studentCodeLoginBtn").onclick=async()=>{
   const code=$("#studentCodeLogin").value.trim(), owner=portalOwner(), msg=$("#studentCodeLoginMsg");
   msg.textContent="";
   if(!owner){msg.textContent="ลิงก์ตรวจคะแนนไม่สมบูรณ์ กรุณาขอลิงก์ใหม่จากครู";return;}
   if(!code){msg.textContent="กรุณากรอกรหัสนักเรียน";return;}
-  const btn=$("#studentCodeLoginBtn"); btn.disabled=true; btn.textContent="กำลังค้นหา...";
-  try{
-    const portalParams=new URLSearchParams(location.search);
-    const {data,error}=await sb.rpc("student_portal_by_code",{p_owner_id:owner,p_student_code:code,p_academic_year:Number(portalParams.get("year"))||2569,p_semester:Number(portalParams.get("semester"))||2});
-    if(error)throw error;
-    const x=Array.isArray(data)?data[0]:data;
-    if(!x||!x.student)throw new Error("ไม่พบรหัสนักเรียนนี้");
-    showOnly("studentPage"); renderStudentPortalData(x);
-  }catch(e){msg.textContent=e?.message||String(e);}
-  finally{btn.disabled=false;btn.textContent="ดูคะแนนของฉัน";}
+  studentViewYear=Number($("#studentLoginYearSelect")?.value)||studentViewYear;
+  studentViewSemester=Number($("#studentLoginSemesterSelect")?.value)||studentViewSemester;
+  syncStudentTermSelectors();
+  await loadStudentByCode(code,owner,studentViewYear,studentViewSemester);
 };
 $("#studentCodeLogin")?.addEventListener("keydown",e=>{if(e.key==="Enter")$("#studentCodeLoginBtn").click();});
 
@@ -1047,16 +1087,20 @@ function renderStudentPortalData(x){
   const spMissing=$("#spMissing"); if(spMissing)spMissing.textContent=`${missingWorkCountFromAssignments(x.assignments)} ชิ้น`;
 }
 
-async function loadStudentPortal(token){
+async function loadStudentPortal(token,year=studentViewYear,term=studentViewSemester){
+  if(studentPortalBusy)return;
+  studentPortalBusy=true;
   $("#spError").textContent="";
   try{
-    const portalParams=new URLSearchParams(location.search);
-    const {data,error}=await sb.rpc("student_portal",{p_token:token,p_academic_year:Number(portalParams.get("year"))||2569,p_semester:Number(portalParams.get("semester"))||2});
+    const {data,error}=await sb.rpc("student_portal",{p_token:token,p_academic_year:year,p_semester:term});
     if(error)throw error;
     const x=Array.isArray(data)?data[0]:data;
     if(!x||!x.student){throw new Error("ไม่พบข้อมูลจากลิงก์นี้")}
+    studentViewYear=year;studentViewSemester=term;syncStudentTermSelectors();
     renderStudentPortalData(x);
+    const notice=$("#studentTermNotice");if(notice)notice.textContent=`กำลังแสดงคะแนนปีการศึกษา ${year} ภาคเรียนที่ ${term}`;
   }catch(e){$("#spName").textContent="ไม่พบข้อมูล";$("#spRoom").textContent="";$("#spScores").innerHTML="";$("#spError").textContent=e.message}
+  finally{studentPortalBusy=false;}
 }
 
 let modalSaveFn=null;

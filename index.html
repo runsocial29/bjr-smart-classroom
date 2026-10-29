@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b74de">
-  <title>BJR Smart Classroom V5.5.8 Online</title>
+  <title>BJR Smart Classroom V5.6.0 Student Term Selector</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -41,6 +41,10 @@
       <h1>ตรวจสอบคะแนนนักเรียน</h1>
       <h2 class="school-name">โรงเรียนเบญจมราชูทิศ จังหวัดจันทบุรี</h2>
       <p>กรอกรหัสนักเรียนเพื่อดูคะแนนของตนเอง</p>
+      <div class="student-term-controls">
+        <label>ปีการศึกษา<select id="studentLoginYearSelect"></select></label>
+        <label>ภาคเรียน<select id="studentLoginSemesterSelect"><option value="1">ภาคเรียนที่ 1</option><option value="2">ภาคเรียนที่ 2</option></select></label>
+      </div>
       <label>รหัสนักเรียน
         <input id="studentCodeLogin" inputmode="numeric" autocomplete="off" placeholder="กรอกรหัสนักเรียน">
       </label>
@@ -54,6 +58,11 @@
     <div class="student-shell">
       <div class="student-brand">SMART CLASSROOM</div>
       <div class="student-card">
+        <div class="student-term-controls">
+          <label>ปีการศึกษา<select id="studentYearSelect"></select></label>
+          <label>ภาคเรียน<select id="studentSemesterSelect"><option value="1">ภาคเรียนที่ 1</option><option value="2">ภาคเรียนที่ 2</option></select></label>
+        </div>
+        <div id="studentTermNotice" class="student-term-notice">เลือกภาคเรียนเพื่อดูคะแนนของเทอมนั้น</div>
         <div class="avatar">👤</div>
         <h1 id="spName">กำลังโหลด...</h1>
         <p id="spRoom"></p>
@@ -80,7 +89,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="logo small school-brand-logo"><img src="school-logo-real.jpg" alt="ตราโรงเรียน"></div>
-        <div class="brand-text"><b>Smart Classroom</b><small>V5.6.0 Academic Terms</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
+        <div class="brand-text"><b>Smart Classroom</b><small>V5.6.0 Student Term Selector</small><span class="teacher-brand-name">ครูนิรันต์ คายเซ่า</span></div>
       </div>
       <nav>
         <button class="nav active" data-view="dashboard">🏠 Dashboard</button>

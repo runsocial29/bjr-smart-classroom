@@ -273,3 +273,10 @@ input,textarea,select{border:1px solid var(--line);border-radius:11px;padding:10
 .term-select{min-width:125px}
 #startTermBtn{white-space:nowrap}
 @media(max-width:900px){.term-select{min-width:110px}}
+
+/* Student academic-term selector */
+.student-term-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0;text-align:left;padding:12px;background:#f4f8fc;border:1px solid #dce7f3;border-radius:14px}
+.student-term-controls label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#334155}
+.student-term-controls select{width:100%;min-width:0;border:1px solid #cbd5e1;border-radius:9px;padding:10px;background:#fff;color:#0f172a;font:inherit}
+.student-term-notice{font-size:13px;color:#475569;background:#eff6ff;border-radius:10px;padding:9px 12px;margin:8px 0}
+@media(max-width:480px){.student-card{padding:16px}.student-term-controls{gap:8px;padding:9px}.student-term-controls select{padding:9px 6px}}
