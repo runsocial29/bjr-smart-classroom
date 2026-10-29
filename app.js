@@ -618,6 +618,30 @@ function renderAttendanceSummary(){
 }
 $("#refreshAttendanceSummaryBtn").onclick=refreshAttendanceHistory;
 
+// Destructive action: delete attendance records only for the selected room/year/semester.
+$("#deleteAllAttendanceBtn").onclick=async()=>{
+  if(!currentRoomId||!user?.id)return alert("กรุณาเข้าสู่ระบบและเลือกห้องเรียนก่อน");
+  const scope=`ห้อง ${rooms.find(r=>r.id===currentRoomId)?.name||"ที่เลือก"} • ปีการศึกษา ${academicYear} • ภาคเรียนที่ ${semester}`;
+  if(!confirm(`⚠️ ยืนยันการลบประวัติการเช็กชื่อทั้งหมดหรือไม่?\n\n${scope}\n\nข้อมูลการมา/สาย/ลา/ขาด/กิจกรรมในขอบเขตนี้จะถูกลบถาวร และกู้คืนไม่ได้`))return;
+  const typed=prompt('เพื่อป้องกันการกดพลาด กรุณาพิมพ์คำว่า ลบการเช็กชื่อ ให้ตรงทุกตัว');
+  if(typed!=="ลบการเช็กชื่อ"){if(typed!==null)alert("คำยืนยันไม่ตรง ยกเลิกการลบแล้ว");return;}
+  const btn=$("#deleteAllAttendanceBtn");
+  btn.disabled=true;btn.textContent="กำลังลบข้อมูล...";
+  try{
+    const {error}=await sb.from("attendance").delete()
+      .eq("owner_id",user.id).eq("room_id",currentRoomId)
+      .eq("academic_year",academicYear).eq("semester",semester);
+    if(error)throw error;
+    attendance={};attendanceNotes={};attendanceHistory=[];
+    await loadRoomData();
+    alert(`ลบประวัติการเช็กชื่อเรียบร้อยแล้ว\n${scope}`);
+  }catch(e){
+    alert("ลบข้อมูลไม่สำเร็จ: "+(e?.message||e));
+  }finally{
+    btn.disabled=false;btn.textContent="🗑️ ลบบันทึกการเช็กชื่อทั้งหมด";
+  }
+};
+
 let calendarViewDate=null;
 const THAI_MONTHS_FULL=["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 

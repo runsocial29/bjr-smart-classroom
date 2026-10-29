@@ -290,3 +290,13 @@ input,textarea,select{border:1px solid var(--line);border-radius:11px;padding:10
 .score-delete-all-btn:hover{background:#991b1b!important}
 .score-delete-all-btn:disabled{opacity:.65;box-shadow:none}
 @media(max-width:700px){.score-danger-zone{align-items:stretch;flex-direction:column}.score-delete-all-btn{width:100%}}
+
+
+/* High-risk delete area: isolated from normal attendance controls */
+.attendance-delete-zone{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:18px 0;padding:16px;border:2px solid #dc2626;border-radius:14px;background:#fff1f2}
+.attendance-delete-zone strong{display:block;color:#991b1b;font-size:15px}
+.attendance-delete-zone p{margin:5px 0 0;color:#7f1d1d;font-size:13px;line-height:1.5}
+.btn.danger.attendance-delete-btn{background:#b91c1c;color:#fff;border:2px solid #7f1d1d;font-weight:900;min-height:46px;box-shadow:0 3px 0 #7f1d1d}
+.btn.danger.attendance-delete-btn:hover{background:#991b1b}
+.btn.danger.attendance-delete-btn:disabled{opacity:.65;box-shadow:none}
+@media(max-width:650px){.attendance-delete-zone{align-items:stretch}.attendance-delete-btn{width:100%}}
