@@ -966,6 +966,31 @@ $("#saveExamScoresBtn").onclick=async()=>{
   await loadRoomData();toast("บันทึกคะแนนกลางภาคและปลายภาคแล้ว");savePopup("บันทึกคะแนนกลางภาคและคะแนนปลายภาคเรียบร้อยแล้ว");
 };
 
+// ลบเฉพาะคะแนนของห้อง/ปี/ภาคเรียนที่กำลังเลือก โดยคงรายชื่อนักเรียนและรายการชิ้นงานไว้
+$("#deleteAllScoresBtn").onclick=async()=>{
+  if(!currentRoomId||!user?.id)return toast("กรุณาเข้าสู่ระบบและเลือกห้องเรียนก่อน");
+  if(hasUnsavedScores()&&!confirmDiscardUnsavedScores())return;
+  const roomName=rooms.find(r=>r.id===currentRoomId)?.name||"ห้องที่เลือก";
+  const scope=`${roomName} • ปีการศึกษา ${academicYear} • ภาคเรียนที่ ${semester}`;
+  const first=window.confirm(`⚠️ ยืนยันการลบคะแนน?\n\n${scope}\n\nระบบจะลบคะแนนเก็บ คะแนนกลางภาค และคะแนนปลายภาคทั้งหมดในขอบเขตนี้\n\nรายชื่อชิ้นงานและนักเรียนจะยังอยู่ แต่คะแนนที่ลบแล้วจะกู้คืนไม่ได้`);
+  if(!first)return;
+  const typed=window.prompt(`เพื่อป้องกันการกดพลาด กรุณาพิมพ์คำว่า ลบคะแนน\n\nขอบเขต: ${scope}`);
+  if(typed!=="ลบคะแนน"){if(typed!==null)toast("ยกเลิกแล้ว เพราะคำยืนยันไม่ตรงกัน");return;}
+  const btn=$("#deleteAllScoresBtn");btn.disabled=true;const oldText=btn.textContent;btn.textContent="กำลังลบคะแนน...";
+  try{
+    const examResult=await sb.from("exam_scores").delete().eq("owner_id",user.id).eq("room_id",currentRoomId).eq("academic_year",academicYear).eq("semester",semester);
+    if(examResult.error)throw new Error("ลบคะแนนกลางภาค/ปลายภาคไม่สำเร็จ: "+examResult.error.message);
+    const workResult=await sb.from("scores").delete().eq("owner_id",user.id).eq("room_id",currentRoomId).eq("academic_year",academicYear).eq("semester",semester);
+    if(workResult.error)throw new Error("ลบคะแนนเก็บไม่สำเร็จ หลังจากลบคะแนนสอบแล้ว: "+workResult.error.message);
+    clearWorkScoresDirty();clearExamScoresDirty();
+    await loadRoomData();
+    savePopup(`ลบคะแนนทั้งหมดเรียบร้อยแล้ว\n${scope}\n\nรายชื่อชิ้นงานและนักเรียนยังคงอยู่`);
+  }catch(e){
+    toast(e?.message||String(e));
+    await loadRoomData();
+  }finally{btn.disabled=false;btn.textContent=oldText;}
+};
+
 
 function courseworkExcelValue(value){
   const n=Number(value)||0;

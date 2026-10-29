@@ -280,3 +280,13 @@ input,textarea,select{border:1px solid var(--line);border-radius:11px;padding:10
 .student-term-controls select{width:100%;min-width:0;border:1px solid #cbd5e1;border-radius:9px;padding:10px;background:#fff;color:#0f172a;font:inherit}
 .student-term-notice{font-size:13px;color:#475569;background:#eff6ff;border-radius:10px;padding:9px 12px;margin:8px 0}
 @media(max-width:480px){.student-card{padding:16px}.student-term-controls{gap:8px;padding:9px}.student-term-controls select{padding:9px 6px}}
+
+
+/* High-risk action: delete scores only, visually separated and strongly highlighted */
+.score-danger-zone{margin-top:18px;border:2px solid #dc2626!important;background:#fff7f7!important;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.score-danger-copy h3{margin:0 0 8px;color:#991b1b}
+.score-danger-copy p{margin:5px 0;color:#7f1d1d;line-height:1.55}
+.score-delete-all-btn{background:#b91c1c!important;color:#fff!important;border:2px solid #7f1d1d!important;min-height:52px;white-space:normal;box-shadow:0 3px 0 #7f1d1d;font-weight:900}
+.score-delete-all-btn:hover{background:#991b1b!important}
+.score-delete-all-btn:disabled{opacity:.65;box-shadow:none}
+@media(max-width:700px){.score-danger-zone{align-items:stretch;flex-direction:column}.score-delete-all-btn{width:100%}}

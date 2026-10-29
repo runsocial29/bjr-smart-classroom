@@ -286,6 +286,15 @@
             </table>
           </div>
         </div>
+
+        <div class="card score-danger-zone">
+          <div class="score-danger-copy">
+            <h3>⚠️ พื้นที่ลบคะแนน</h3>
+            <p>ลบเฉพาะคะแนนเก็บ คะแนนกลางภาค และคะแนนปลายภาคของห้อง วิชา ปีการศึกษา และภาคเรียนที่เลือกอยู่เท่านั้น</p>
+            <p><strong>รายชื่อชิ้นงานและนักเรียนจะไม่ถูกลบ</strong> แต่คะแนนที่ลบแล้วจะกู้คืนจากปุ่มนี้ไม่ได้</p>
+          </div>
+          <button class="btn danger score-delete-all-btn" id="deleteAllScoresBtn" type="button">🗑️ ลบคะแนนทั้งหมดของภาคเรียนนี้</button>
+        </div>
       </section>
 
       <section id="behavior" class="view">
@@ -332,6 +341,6 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="app.js?v=5.6.1-student-year-fix"></script>
+  <script src="app.js?v=5.6.1-delete-scores-guard"></script>
 </body>
 </html>
